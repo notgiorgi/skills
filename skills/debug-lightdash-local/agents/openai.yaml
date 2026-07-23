@@ -1,0 +1,4 @@
+interface:
+  display_name: "Debug Lightdash Local"
+  short_description: "Debug local Lightdash app issues"
+  default_prompt: "Use $debug-lightdash-local to reproduce and debug this issue against my local Lightdash dev stack."

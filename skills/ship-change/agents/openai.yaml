@@ -1,0 +1,7 @@
+interface:
+  display_name: "Ship Change"
+  short_description: "Implement, review, verify, and submit a change"
+  default_prompt: "Use $ship-change with change: <ticket/doc/plan>; verify: <method>; security-review: <yes|no>."
+
+policy:
+  allow_implicit_invocation: false
