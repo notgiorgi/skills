@@ -36,7 +36,7 @@ Completion: each scenario has enough independent evidence to rule out a merely p
 
 Exercise the real product with sanitized synthetic data. Preserve user work and connected state. Verification is read-only with respect to source code: report a failing claim instead of implementing a fix.
 
-Use `agent-browser` for browser interaction, screenshots, videos, and product URLs. First run `agent-browser --help` and use its current built-in guidance; keep command knowledge in the tool, not this skill.
+Use `agent-browser` for browser interaction, screenshots, videos, and product URLs. First run `agent-browser --help` and use its current built-in guidance; keep command knowledge in the tool, not this skill. For desktop proof, set a `1440x1000` viewport before target navigation and capture. Use a claim-specific viewport for responsive or device behavior.
 
 Use the product's native interfaces where they strengthen causality. For local trace discovery and inspection, start with `maple --help`. Also consider targeted logs, `psql`, `curl`, a development CLI, or content-as-code. Inspect each tool's current help and repository guidance before use. Capture compact, relevant output rather than broad dumps.
 
@@ -50,7 +50,7 @@ Completion: all scenarios ran against the pinned instance; captured artifacts ex
 
 ## 5. Package the proof
 
-Copy [`../assets/PROOF.md`](../assets/PROOF.md) to the checkout root. Name it `PROOF-<TICKET>.md` when a ticket exists, otherwise `PROOF.md`. Put media beside it in `PROOF-<TICKET>.assets/` or `PROOF.assets/` and use relative paths. Duplicate the evidence block for each scenario and remove unused fields and every placeholder.
+Copy [`../assets/PROOF.md`](../assets/PROOF.md) to the checkout root. Name it `PROOF-<TICKET>.md` when a ticket exists. Without a ticket, derive a short lowercase kebab-case slug from the claim and name it `PROOF-<slug>.md`, such as `PROOF-homepage-ask-ai.md`. Put media beside it in the matching `PROOF-<TICKET>.assets/` or `PROOF-<slug>.assets/` directory and use relative paths. Duplicate the evidence block for each scenario and remove unused fields and every placeholder.
 
 Keep the summary short. Embed every image with Markdown. Embed every video with HTML `<video controls>` and add a normal link as fallback. Link all product locations and every linkable trace. Include targeted database, request, CLI, or log evidence inline or in compact `<details>` blocks.
 
