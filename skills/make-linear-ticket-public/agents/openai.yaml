@@ -1,0 +1,7 @@
+interface:
+  display_name: "Make Linear Ticket Public"
+  short_description: "Republish a private Linear ticket as a public GitHub issue"
+  default_prompt: "Use $make-linear-ticket-public to move ZAP-123 to the public GitHub tracker."
+
+policy:
+  allow_implicit_invocation: false
