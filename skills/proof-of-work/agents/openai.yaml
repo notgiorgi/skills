@@ -1,0 +1,7 @@
+interface:
+  display_name: "Proof of Work"
+  short_description: "Capture linked product proof for a change"
+  default_prompt: "Use $proof-of-work to verify this change in the real product and package the evidence."
+
+policy:
+  allow_implicit_invocation: false
