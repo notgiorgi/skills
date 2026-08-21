@@ -40,6 +40,13 @@ Use `agent-browser` for browser interaction, screenshots, videos, and product UR
 
 Use the product's native interfaces where they strengthen causality. For local trace discovery and inspection, start with `maple --help`. Also consider targeted logs, `psql`, `curl`, a development CLI, or content-as-code. Inspect each tool's current help and repository guidance before use. Capture compact, relevant output rather than broad dumps.
 
+For a local Maple trace, generate its UI link from the active target:
+
+```bash
+trace_id='<trace-id>'
+maple whoami --local --format json | jq -r --arg trace_id "$trace_id" '(.url | rtrimstr("/")) + "/#/traces/" + $trace_id'
+```
+
 For a temporal claim, capture one continuous video from the triggering action through the final continued state. Use separate scenarios when decisions lead to different paths.
 
 For every trace mentioned, include its clickable trace URL when the environment exposes one. Otherwise include the trace ID and exact command that reopens it. Link every created thread, dashboard, chart, saved content item, or other relevant product location.
@@ -50,7 +57,7 @@ Completion: all scenarios ran against the pinned instance; captured artifacts ex
 
 ## 5. Package the proof
 
-Copy [`../assets/PROOF.md`](../assets/PROOF.md) to the checkout root. Name it `PROOF-<TICKET>.md` when a ticket exists. Without a ticket, derive a short lowercase kebab-case slug from the claim and name it `PROOF-<slug>.md`, such as `PROOF-homepage-ask-ai.md`. Put media beside it in the matching `PROOF-<TICKET>.assets/` or `PROOF-<slug>.assets/` directory and use relative paths. Duplicate the evidence block for each scenario and remove unused fields and every placeholder.
+Choose the directory name from the ticket ID when one exists. Otherwise derive a short lowercase kebab-case slug from the claim, such as `homepage-ask-ai`. Copy [`../assets/PROOF.md`](../assets/PROOF.md) to `.local/proofs/<ticket-or-slug>/proof.md` in the checkout. Put media directly beside `proof.md` and use relative paths. Duplicate the evidence block for each scenario and remove unused fields and every placeholder.
 
 Keep the summary short. Embed every image with Markdown. Embed every video with HTML `<video controls>` and add a normal link as fallback. Link all product locations and every linkable trace. Include targeted database, request, CLI, or log evidence inline or in compact `<details>` blocks.
 
