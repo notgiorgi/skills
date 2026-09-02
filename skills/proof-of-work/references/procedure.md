@@ -2,17 +2,27 @@
 
 ## 1. Pin the claim
 
-Read the user request, current branch/diff, and originating ticket or spec when available. Resolve a ticket only from explicit input, branch/commit metadata, or an authoritative tracker; never invent one. Record the branch and exact revision.
+Read the user request, current branch/diff, and originating ticket or spec when available. Resolve a ticket only from explicit input, branch/commit metadata, or an authoritative tracker; never invent one. Record the branch and exact revision, plus the baseline revision (merge-base with the default branch).
 
-Turn the claim into observable scenarios with explicit expected outcomes. Include negative or continuation paths when they are part of the claim, such as approve and deny.
+Classify the claim, then turn it into observable scenarios with explicit expected outcomes:
 
-Completion: every material part of the claim maps to an observable scenario and expected outcome.
+- **Fix**: each scenario runs red then green. The defect reproduces on the baseline revision, then the same steps succeed on the pinned revision. A defect that does not reproduce on the baseline makes the scenario BLOCKED, not PASS.
+- **Improvement**: each scenario is a comparison. Capture the same measurement or interaction on the baseline and on the pinned revision, side by side.
+- **Feature**: each scenario shows the new behavior on the pinned revision.
+
+Include negative or continuation paths when they are part of the claim, such as approve and deny.
+
+Completion: every material part of the claim maps to an observable scenario and expected outcome; every fix or improvement scenario names its baseline capture.
 
 ## 2. Pin the product instance
 
 Identify the running instance that belongs to this checkout before testing. Verify URLs, processes, and environment against the worktree rather than assuming defaults. In Lightdash, check `OTEL_SERVICE_NAME`, `PORT`, and `FE_PORT`, then confirm the browser, API, database, and trace scope point at that instance.
 
-Completion: the proof can name the checkout, revision, product URL, and runtime/trace scope it exercised.
+Run the baseline in a separate `git worktree` at the baseline revision with its own ports and trace scope; remove it after capture.
+
+Confirm each server is fresh before capturing: its process started after the last source change on its revision, and generated artifacts such as the OpenAPI spec match the source. Restart or regenerate when either is stale; a stale server proves the wrong revision.
+
+Completion: the proof can name the checkout, revision, product URL, and runtime/trace scope it exercised, and each server passed the freshness check.
 
 ## 3. Choose causal evidence
 
@@ -53,7 +63,7 @@ For every trace mentioned, include its clickable trace URL when the environment 
 
 Prefer durable product links. Clean disposable intermediates after capture. If cleanup would break evidence links, preserve those evidence records through handoff and list their identifiers and cleanup action in the proof document.
 
-Completion: all scenarios ran against the pinned instance; captured artifacts expose no credentials, customer data, or unrelated private information.
+Completion: all scenarios ran against the pinned instance, and baseline captures against the baseline instance; captured artifacts expose no credentials, customer data, or unrelated private information.
 
 ## 5. Package the proof
 
@@ -67,7 +77,7 @@ Completion: the document contains the verdict, tested scenarios, revision/instan
 
 ## 6. Audit the artifact
 
-Open the finished document and verify every local path exists, images render, videos play, external links target the pinned instance, and evidence supports the stated verdict. Check `git status` confirms the proof artifacts are untracked and no unrelated files changed.
+Open the finished document and verify every local path exists, images render, videos play, external links target the pinned or baseline instance they claim, and evidence supports the stated verdict. Check `git status` confirms the proof artifacts are untracked and no unrelated files changed.
 
 Return:
 

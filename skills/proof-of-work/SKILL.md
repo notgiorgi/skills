@@ -24,6 +24,6 @@ Read <absolute-skill-path>/references/procedure.md and execute it completely. De
 
 Pass factual constraints the user supplied, but no proposed proof plan or implementation conclusions. Wait for the sub-agent; do not perform proof work in parallel.
 
-Inspect its returned artifact. Confirm the document and every local media path exist, all required links are present, and the verdict answers the claim. Send the sub-agent a focused follow-up if the contract is incomplete.
+Inspect its returned artifact. Confirm the document and every local media path exist, all required links are present, the verdict answers the claim, and a fix or improvement shows its baseline capture. Send the sub-agent a focused follow-up if the contract is incomplete.
 
 Completion: one fresh sub-agent completed the procedure and the primary agent handed off its checked proof document, verdict, links, and caveats.

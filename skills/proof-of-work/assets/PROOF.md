@@ -7,6 +7,7 @@
 - Revision: `<branch>@<sha>`
 - Instance: [product](<product-url>)
 - Scope: `<runtime or trace scope>`
+- Baseline: `<sha>` at [baseline instance](<baseline-url>), scope `<baseline scope>` (fix and improvement only)
 
 ## Evidence
 
@@ -14,6 +15,10 @@
 
 - Product: [open relevant product location](<url>)
 - Trace: [open trace](<url>)
+
+**Baseline (red / before):** <observed defect or measurement, with its media below> (fix and improvement only)
+
+**Pinned (green / after):** <observed outcome or measurement>
 
 <video controls src="<relative-video-path>"></video>
 
