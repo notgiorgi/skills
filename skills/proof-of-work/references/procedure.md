@@ -57,7 +57,7 @@ trace_id='<trace-id>'
 maple whoami --local --format json | jq -r --arg trace_id "$trace_id" '(.url | rtrimstr("/")) + "/#/traces/" + $trace_id'
 ```
 
-For a temporal claim, capture one continuous video from the triggering action through the final continued state. Use separate scenarios when decisions lead to different paths.
+For a temporal claim, capture one continuous video from the triggering action through the final continued state. Record with `agent-browser record start <path> --cursor` so the pointer and click ripple are visible in every frame. Use separate scenarios when decisions lead to different paths.
 
 For every trace mentioned, include its clickable trace URL when the environment exposes one. Otherwise include the trace ID and exact command that reopens it. Link every created thread, dashboard, chart, saved content item, or other relevant product location.
 
