@@ -44,7 +44,7 @@ Completion: each scenario has enough independent evidence to rule out a merely p
 
 ## 4. Execute and capture
 
-Exercise the real product with sanitized synthetic data. Preserve user work and connected state. Verification is read-only with respect to source code: report a failing claim instead of implementing a fix.
+Exercise the real product with sanitized synthetic data, in character as its user. First split each scenario into its fixture and its surface under proof. The fixture is everything the claim takes as given; seed it the cheapest way that leaves the proof real (database inserts, stubs, a synthetic user or agent). The surface under proof is the behavior the claim is about; produce it only through the path a real user would take, never by seeding state the user could not create. To prove agent compaction: seed the user and agent in the database, then start a thread from the product and send enough messages to trigger a compact. Every input typed into the product reads like a real user's, a plain question or task; ticket IDs and proof labels stay in the proof document. Preserve user work and connected state. Verification is read-only with respect to source code: report a failing claim instead of implementing a fix.
 
 Use `agent-browser` for browser interaction, screenshots, videos, and product URLs. First run `agent-browser --help` and use its current built-in guidance; keep command knowledge in the tool, not this skill. For desktop proof, set a `1440x1000` viewport before target navigation and capture. Use a claim-specific viewport for responsive or device behavior.
 
@@ -63,7 +63,7 @@ For every trace mentioned, include its clickable trace URL when the environment 
 
 Prefer durable product links. Clean disposable intermediates after capture. If cleanup would break evidence links, preserve those evidence records through handoff and list their identifiers and cleanup action in the proof document.
 
-Completion: all scenarios ran against the pinned instance, and baseline captures against the baseline instance; captured artifacts expose no credentials, customer data, or unrelated private information.
+Completion: all scenarios ran through the user's surface against the pinned instance, and baseline captures against the baseline instance; captured artifacts expose no credentials, customer data, or unrelated private information.
 
 ## 5. Package the proof
 
