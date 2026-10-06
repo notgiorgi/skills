@@ -1,7 +1,20 @@
 #!/usr/bin/env bash
-# Install every skill I use globally: this repo + external sources.
+# Set up a machine: global agent instructions + every skill I use (this repo + externals).
 # Add new externals here so other machines can replay them.
 set -euo pipefail
+cd "$(dirname "$0")"
+
+# one global instructions file, symlinked for every agent; existing real files kept as .bak
+link() { mkdir -p "$(dirname "$2")"; [ -e "$2" ] && [ ! -L "$2" ] && mv "$2" "$2.bak"; ln -sfn "$1" "$2"; }
+link "$PWD/global/AGENTS.md" ~/.agents/AGENTS.md
+link "$PWD/global/CLAUDE.md" ~/.claude/CLAUDE.md
+link ~/.agents/AGENTS.md ~/.codex/AGENTS.md
+
+# executor MCP (linear/pylon/sentry/lightdash behind one server); needs `executor` CLI on PATH
+if command -v executor >/dev/null; then
+  claude mcp add -s user executor -- executor mcp 2>/dev/null || true
+  codex mcp add executor -- executor mcp 2>/dev/null || true
+fi
 
 add() { npx skills add "$@" -g --agent '*' -y; }
 

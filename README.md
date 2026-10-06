@@ -10,10 +10,11 @@ Just this repo's skills:
 npx skills add notgiorgi/skills -g
 ```
 
-Everything I use (this repo + external skills), e.g. on a new machine:
+Everything I use on a new machine (this repo + external skills + global agent instructions):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/notgiorgi/skills/main/install.sh | bash
+git clone git@github.com:notgiorgi/skills.git ~/develop/skills && ~/develop/skills/install.sh
 ```
 
-`install.sh` is the source of truth for external skills. Add new ones there.
+- `install.sh` is the source of truth for external skills. Add new ones there.
+- `global/AGENTS.md` is the global instruction file, symlinked to `~/.agents/AGENTS.md`, `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`. Edit it in the repo.
