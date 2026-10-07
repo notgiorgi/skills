@@ -1,0 +1,7 @@
+interface:
+  display_name: "Record Demo Video"
+  short_description: "Record and edit a demo video of a running app"
+  default_prompt: "Use $record-demo-video to record a demo video of this flow in the running app."
+
+policy:
+  allow_implicit_invocation: false

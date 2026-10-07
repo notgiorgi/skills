@@ -1,0 +1,53 @@
+<!doctype html>
+<!--
+  Title card or caption band for a demo video, filled from the URL's query string.
+  Screenshot it with agent-browser at the viewport size of the card:
+    title:   1920x1080   card.html?kind=title&eyebrow=Example%20app&step=1%20of%203&title=Build%20a%20report&sub=Describe%20it
+    caption: 1920x54     card.html?kind=caption&step=1&title=Build%20a%20report&sub=20%C3%97%20speed&left=178
+  Optional colours: bg, fg, muted, accent (hex without #). `left` indents a caption to line up with the video.
+-->
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); font-family: -apple-system, "SF Pro Display", "Helvetica Neue", system-ui, sans-serif; overflow: hidden; }
+  .pill { font-style: normal; display: inline-block; font-weight: 600; color: var(--bg); background: var(--accent); border-radius: 999px; }
+  .title { display: flex; height: 100%; align-items: center; justify-content: center; }
+  .title > div { width: 68%; }
+  .title .eyebrow { font-size: 26px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin-bottom: 28px; }
+  .title .pill { font-size: 28px; padding: 6px 22px; margin-bottom: 26px; }
+  .title h1 { margin: 0; font-size: 84px; font-weight: 700; letter-spacing: -.02em; line-height: 1.05; }
+  .title p { margin: 28px 0 0; font-size: 36px; color: var(--muted); line-height: 1.35; }
+  .caption { display: flex; height: 100%; align-items: center; gap: 16px; white-space: nowrap; }
+  .caption .pill { font-size: 19px; padding: 3px 13px; }
+  .caption b { font-size: 24px; font-weight: 600; }
+  .caption span { font-size: 22px; color: var(--muted); }
+</style>
+</head>
+<body>
+<script>
+  const q = new URLSearchParams(location.search);
+  const css = document.documentElement.style;
+  css.setProperty("--bg", "#" + (q.get("bg") ?? "0e0f11"));
+  css.setProperty("--fg", "#" + (q.get("fg") ?? "f3f4f6"));
+  css.setProperty("--muted", "#" + (q.get("muted") ?? "8b93a1"));
+  css.setProperty("--accent", "#" + (q.get("accent") ?? "8ab4ff"));
+  const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; e.textContent = text; return e; };
+  const root = el("div", q.get("kind") === "caption" ? "caption" : "title", "");
+  if (q.get("kind") === "caption") {
+    root.style.paddingLeft = (q.get("left") ?? "178") + "px";
+    if (q.get("step")) root.append(el("i", "pill", q.get("step")));
+    root.append(el("b", "", q.get("title") ?? ""));
+    if (q.get("sub")) root.append(el("span", "", q.get("sub")));
+  } else {
+    const inner = el("div", "", "");
+    if (q.get("eyebrow")) inner.append(el("div", "eyebrow", q.get("eyebrow")));
+    if (q.get("step")) inner.append(el("div", "pill", q.get("step")));
+    inner.append(el("h1", "", q.get("title") ?? ""));
+    if (q.get("sub")) inner.append(el("p", "", q.get("sub")));
+    root.append(inner);
+  }
+  document.body.append(root);
+</script>
+</body>
+</html>
