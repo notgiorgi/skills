@@ -18,3 +18,7 @@ git clone git@github.com:notgiorgi/skills.git ~/develop/skills && ~/develop/skil
 
 - `install.sh` is the source of truth for external skills. Add new ones there.
 - `global/AGENTS.md` is the global instruction file, symlinked to `~/.agents/AGENTS.md`, `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`. Edit it in the repo.
+
+## Remote environments
+
+[exe.dev setup](docs/exe-dev-setup.md): T3 Connect, fresh repository clones, provider auth, commit signing, skills, Executor, and localhost OAuth tunnels.

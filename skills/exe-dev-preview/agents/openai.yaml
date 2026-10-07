@@ -1,0 +1,7 @@
+interface:
+  display_name: "exe.dev Preview"
+  short_description: "Get a private URL for a running VM app"
+  default_prompt: "Use $exe-dev-preview to get a private browser URL for this app on exe.dev."
+
+policy:
+  allow_implicit_invocation: false
