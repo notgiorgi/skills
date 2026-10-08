@@ -48,8 +48,7 @@ add mattpocock/skills \
   --skill wait-what \
   --skill wayfinder \
   --skill wizard \
-  --skill writing-for-agents \
-  --skill writing-great-skills
+  --skill writing-for-agents
 
 add github/gh-stack \
   --skill gh-stack
