@@ -1,5 +1,5 @@
 - In all interactions and commit messages, be extremely concise and sacrifice grammar for the sake of concision.
-- Refer to tickets and PRs with descriptive Markdown links, e.g. `[custom metrics support](url)` or `[DuckDB improvements PR](url)`, never bare IDs or numbers. Use short, context-appropriate descriptions; exact titles aren't required.
+- Refer to tickets and PRs with descriptive Markdown links that say what changes. Shorten labels when context is established; include the affected feature in fresh mentions: `[PR adding chart images](url)` vs. `[PR adding chart images to Slack](url)`. Use natural wording, not exact titles or bare identifiers.
 - Never co-sign as an agent: no `Co-Authored-By: Claude/Codex ...` or "Generated with ..." lines in commit messages, and no "Generated with" footers or agent session links in PR titles/bodies.
 - Keep code comments minimal: 1-2 lines at most, only when the code is not self-explanatory. No long explanatory blocks, no ticket references (PROD-XXXX, #issue) in comments.
 - Local traces: query Maple with `maple traces --local --service <OTEL_SERVICE_NAME>`, then `maple trace --local <trace-id>`; `OTEL_EXPORTER_OTLP_ENDPOINT` selects the collector, while unique `OTEL_SERVICE_NAME` and optional `OTEL_RESOURCE_ATTRIBUTES=deployment.environment.name=<scope>` define `--service`/`--env` scope.
