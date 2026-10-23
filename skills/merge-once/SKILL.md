@@ -1,12 +1,16 @@
 ---
-name: merge-lightdash
-description: Merge a Lightdash PR once required checks and Build & Test CI pass, allowing verified unrelated flaky tests.
+name: merge-once
+description: Merge a PR once your conditions pass; defaults to Lightdash required checks and Build & Test CI, allowing verified unrelated flaky tests.
 disable-model-invocation: true
 ---
 
-# Merge Lightdash
+# Merge once
 
-Only run when explicitly invoked by the user. Invocation authorizes merging the selected Lightdash PR once these gates pass on its latest head:
+Only run when explicitly invoked by the user. Invocation authorizes merging the selected PR once the agreed conditions pass on its latest head.
+
+Treat the rules below as defaults. Apply any additional conditions supplied with the invocation; explicit user instructions override conflicting defaults. Preserve defaults the user does not change. For example, `$merge-once also wait for all e2e tests` adds e2e checks to the merge gate.
+
+Default gates:
 
 - All GitHub-required checks.
 - Build & Test CI: build, lint, format, and unit tests. Resolve the actual jobs from the PR's live checks and workflow definitions; names may be `Build & Test`, or `Build & Lint` plus `Unit Tests` matrix jobs.
