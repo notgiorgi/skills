@@ -1,6 +1,6 @@
 ---
 name: record-demo-video
-description: Record and edit a demo video of a running app, with scripted scenes, title cards, captions and sped-up waits.
+description: Record and edit a feature demo with a tailored story, visual style and motion.
 disable-model-invocation: true
 ---
 
@@ -8,15 +8,19 @@ disable-model-invocation: true
 
 A demo video is a pipeline: **script** the scenes, **record** one take per step with `agent-browser`, **edit** from a plan, **review**, **deliver**. The takes, their time logs and the plan are kept, so a re-cut (captions, speed, order, trims) is a plan change and one render.
 
-The deliverable is **1920×1080 at 30 fps**, H.264, about 2 to 4 minutes. Each scene opens on a title card, every clip carries a caption band naming the scene and what is happening, and every motion on screen is **smooth**: it changes the picture on nearly every frame, as a person's hand would.
+Default output is **1920×1080 at 30 fps**, H.264. Choose the length and presentation for the feature and audience: a small interaction may need 30 seconds; a workflow may need several minutes. Titles, captions, chapters, intro and outro are optional editorial tools. Keep recorded interactions and editorial motion smooth.
 
 Work in one directory, `DEMO_DIR`: `takes/` (videos and time logs), `plan.json`, `render/` (cache) and the output. The skill's `scripts/drive.sh` drives the app smoothly and logs takes; `scripts/render.mjs` cuts the video. They need `agent-browser`, `ffmpeg`, `perl` and `node`.
 
 ## 1. Script
 
-Write the scene list: for each scene a title, the actions, and the **proving moment**, the thing on screen that shows the scene worked (the item rendered, a status reading Published, the merged result).
+Choose what the viewer should understand and a structure that proves it. A continuous walkthrough, result-first reveal, before/after comparison, focused interaction or several connected scenes can all work. Let the feature determine the beats, their order and pacing.
 
-Done when every scene names its proving moment.
+Use the [Lightdash social studio](https://lightdash-social-studio.vercel.app/) as the visual reference for cards, typography, palette and framing. Inspect relevant templates before designing; read [references/style-and-motion.md](references/style-and-motion.md) when choosing styling, zooms or transitions.
+
+Write the beats: actions, framing, approximate duration and the **proving moment**, the visible evidence that the feature worked (the item rendered, a status reading Published, the merged result). Plan where a close-up or transition helps the viewer follow the action.
+
+Done when the story has a clear outcome, every claim has a proving moment, and the planned length and visual direction fit the feature.
 
 ## 2. Connect
 
@@ -28,7 +32,7 @@ ab screenshot start.png
 
 `CDP_PORT` is the app's remote debugging port (an Electron app, or Chrome started with `--remote-debugging-port`).
 
-Check the window's size: a take records at the window's device pixels (a 1280×840 window at 2× density records 2560×1680). Its height must be at least 1026 px to fill 1080p under the caption band; resize the window first when it is smaller.
+Check the window's size: a take records at the window's device pixels (a 1280×840 window at 2× density records 2560×1680). Capture enough pixels for the planned framing and close-ups; the default caption band leaves 1026 px of picture height at 1080p.
 
 Use a scratch profile or account, so nothing private reaches the video. Make one real request against every backend the scenes depend on and confirm it answers quickly: a slow or broken backend ruins a take that costs minutes to redo.
 
@@ -59,16 +63,17 @@ Done when every scene's takes show its proving moment and every cut point is mar
 
 Write `plan.json` (format in [references/plan.md](references/plan.md)), then run `node <skill>/scripts/render.mjs plan.json`. It renders each item once, caches it, and joins them; rerun after every plan change.
 
-- Typing plays at about 1.5×. A wait plays fast enough to last 10 to 20 seconds, so 4× to 40×, with the speed in its caption.
-- After a sped-up wait, cut back to 1× for 2 to 4 seconds on the proving moment, so it can be read.
+- Pace typing and waits around comprehension. Trim a wait or speed it up; label acceleration when elapsed time matters to the claim.
+- After a sped-up wait, return to 1× and let the proving moment be read; 2 to 4 seconds is a useful starting point.
 - Trim dead time between actions with the cut points rather than speeding it up.
-- One title card per scene, about 2.4 seconds, and a short intro and outro.
+- Add cards and captions where they supply missing context. Consecutive clips can carry the story directly.
+- Use the plan's `zoom` for an eased close-up and `transition` for a short dissolve, slide or wipe between beats. These are render-time effects; `agent-browser` supplies the original recording. See [style and motion](references/style-and-motion.md) for choosing them and [plan format](references/plan.md) for supported fields.
 
 `render.mjs frame plan.json <take> <time or label> out.jpg` shows a take at a moment, to place a cut.
 
 ## 5. Review
 
-Make contact sheets with `render.mjs sheet demo.mp4 sheet.jpg [seconds]` and look at every tile. Check each scene's proving moment stays on screen long enough to read, captions match what is shown, the total is within 2 to 4 minutes, and no private data, stray dialog or unexplained error is visible.
+Make contact sheets with `render.mjs sheet demo.mp4 sheet.jpg [seconds]` and look at every tile, including later stretches beyond the first 30 tiles. Check that proving moments stay readable, captions match the picture, pacing fits the chosen length, and no private data, stray dialog or unexplained error is visible. Play each zoom and transition: the target stays in frame, text remains sharp, and the viewer can follow the change.
 
 Check motion is smooth where it matters: `ffmpeg -ss <from> -to <to> -i takes/<take>.mp4 -vf mpdecimate -f null -` reports `frame=` near 30 a second for smooth motion, and a handful for jumps.
 
