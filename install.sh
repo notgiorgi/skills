@@ -65,3 +65,6 @@ add humanlayer/skills \
 
 add typesafe-ai/skills \
   --skill typesafe-ai
+
+add t3dotgg/tstack \
+  --skill sol-loop

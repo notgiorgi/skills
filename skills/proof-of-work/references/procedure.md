@@ -46,7 +46,7 @@ Completion: each scenario has enough independent evidence to rule out a merely p
 
 Exercise the real product with sanitized synthetic data, in character as its user. First split each scenario into its fixture and its surface under proof. The fixture is everything the claim takes as given; seed it the cheapest way that leaves the proof real (database inserts, stubs, a synthetic user or agent). The surface under proof is the behavior the claim is about; produce it only through the path a real user would take, never by seeding state the user could not create. To prove agent compaction: seed the user and agent in the database, then start a thread from the product and send enough messages to trigger a compact. Every input typed into the product reads like a real user's, a plain question or task; ticket IDs and proof labels stay in the proof document. Preserve user work and connected state. Verification is read-only with respect to source code: report a failing claim instead of implementing a fix.
 
-Use `agent-browser` for browser interaction, screenshots, videos, and product URLs. First run `agent-browser --help` and use its current built-in guidance; keep command knowledge in the tool, not this skill. For desktop proof, set a `1440x1000` viewport before target navigation and capture. Use a claim-specific viewport for responsive or device behavior.
+Use browser automation for interaction, screenshots, videos, and product URLs. Before using `agent-browser`, run `agent-browser --help` and follow its current built-in guidance; keep command knowledge in the tool, not this skill. For desktop proof, set a `1440x1000` viewport before target navigation and capture. Use a claim-specific viewport for responsive or device behavior.
 
 Use the product's native interfaces where they strengthen causality. For local trace discovery and inspection, start with `maple --help`. Also consider targeted logs, `psql`, `curl`, a development CLI, or content-as-code. Inspect each tool's current help and repository guidance before use. Capture compact, relevant output rather than broad dumps.
 
@@ -57,7 +57,7 @@ trace_id='<trace-id>'
 maple whoami --local --format json | jq -r --arg trace_id "$trace_id" '(.url | rtrimstr("/")) + "/#/traces/" + $trace_id'
 ```
 
-For a temporal claim, capture one continuous video from the triggering action through the final continued state. Record with `agent-browser record start <path> --cursor` so the pointer and click ripple are visible in every frame. Use separate scenarios when decisions lead to different paths.
+For a temporal claim, capture one continuous video from the triggering action through the final continued state. The pointer and click ripple must be visible in every frame; when browser automation cannot show them, record with `agent-browser record start <path> --cursor`. Use separate scenarios when decisions lead to different paths.
 
 For every trace mentioned, include its clickable trace URL when the environment exposes one. Otherwise include the trace ID and exact command that reopens it. Link every created thread, dashboard, chart, saved content item, or other relevant product location.
 

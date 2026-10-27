@@ -16,9 +16,9 @@
 
 Linear, Pylon, and Sentry MCPs are exposed through the `executor` MCP (`mcp__executor__*` tools) — not as separate MCP servers. Use executor's execute/skills tools to reach them.
 
-## Chrome
+## Browser automation
 
-Use `agent-browser` for browser automation over chrome mcp.
+**Browser automation** means the T3 Code preview browser (`preview_*` tools) when the session runs in T3 Code, otherwise `agent-browser`. In T3 Code, reach for `agent-browser` only for a feature the preview browser lacks, such as pointer-visible video recording.
 
 ## PRs
 
