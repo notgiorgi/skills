@@ -11,10 +11,17 @@
 - Don't be scared to propose bold ideas if they can meaningfully benefit our work.
 - Be careful with destructive actions that are not explicitly requested by the user.
 - Tests are good! Endless smoke tests, "regression tests" for feature deletions, etc, much less good. Tests should be focused, not slop.
+- Don't run the full test suite locally; run only tests relevant to the change. CI handles the expensive full run.
 
 ## MCPs via executor
 
-Linear, Pylon, and Sentry MCPs are exposed through the `executor` MCP (`mcp__executor__*` tools) — not as separate MCP servers. Use executor's execute/skills tools to reach them.
+These MCPs are exposed through the `executor` MCP (`mcp__executor__*` tools) — not as separate MCP servers. Use executor's execute/skills tools to reach them.
+
+- Linear, Pylon, Sentry.
+- `lightdash_cloud_feature_flags`: create, enable, disable Lightdash feature flags across all customers; also reads GCP traces, logs, alerts.
+- `lightdash_mcp`: Lightdash MCP on the internal production analytics instance.
+- `rainbowmachine_mcp`: preview environments for `lightdash/lightdash` PRs; create, exec into, fork, tail logs, kill.
+- `codex_computer_use`: control Mac apps on the real desktop. Default to this for computer use.
 
 ## Browser automation
 
