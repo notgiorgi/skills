@@ -29,7 +29,7 @@ Call shape: `tools.<integration>.<owner>.<connection>.<tool>(args)`; `tools.sear
 
 **Browser automation** means the T3 Code preview browser (`preview_*` tools) when the session runs in T3 Code, otherwise `agent-browser`. In T3 Code, reach for `agent-browser` only for a feature the preview browser lacks, such as pointer-visible video recording.
 
-On a Rainbow env, point the browser at the env URL (`url` tool) and read it with `preview_snapshot`; screenshot only for visual checks.
+To check UI on a Rainbow env: get its URL (rainbow `url` tool), open it with `preview_navigate`, and read it with `preview_snapshot` (text by default). Add `includeImage` only for visual checks such as spacing or colors.
 
 ## PRs
 
