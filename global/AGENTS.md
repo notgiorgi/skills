@@ -17,12 +17,12 @@
 
 These MCPs are exposed through the `executor` MCP (`mcp__executor__*` tools) — not as separate MCP servers. Use executor's execute/skills tools to reach them.
 
-Call shape: `tools.<integration>.org.<connection>.<tool>(args)`. Namespaces can't be enumerated; find paths with `tools.search({namespace, query})`. Results arrive as `{ok, data}`: read `data.structuredContent`, falling back to `JSON.parse(data.content[0].text)`. Executor drops a server's own instructions and prompts, so the tool descriptions are all you get.
+Call shape: `tools.<integration>.<owner>.<connection>.<tool>(args)`; `tools.search` returns the exact path. Namespaces can't be enumerated; find paths with `tools.search({namespace, query})`. Results arrive as `{ok, data}`: read `data.structuredContent`, falling back to `JSON.parse(data.content[0].text)`. Executor drops a server's own instructions and prompts, so the tool descriptions are all you get.
 
 - Linear (`linear.org.linearlightdash.*`), Pylon, Sentry.
 - `lightdash_cloud_feature_flags`: create, enable, disable Lightdash feature flags across all customers; also reads GCP traces, logs, alerts.
 - `lightdash_mcp`: Lightdash MCP on the internal production analytics instance.
-- `rainbowmachine_mcp` (`rainbowmachine_mcp.org.localRainbowmachineMcp.*`): preview environments for `lightdash/lightdash`; usage in the repo's `rainbow-env` skill. An "Internal tool error" from `create_env` has so far meant a slow call still running: `list_envs`, then repeat the same call.
+- `rainbowmachine_mcp` (`rainbowmachine_mcp.org.localRainbowmachineMcp.*`): preview environments for `lightdash/lightdash`; usage in the repo's `rainbow-env` skill. Executor cuts upstream MCP calls at 60 s (`REQUEST_TIMEOUT` in `~/.executor/logs/daemon.log`, shown to you as "Internal tool error") while Rainbow keeps working, so a slow `create_env`/`exec` that fails at ~60 s is usually still running: `list_envs`, then repeat the same call.
 - `codex_computer_use`: control Mac apps on the real desktop. Default to this for computer use.
 
 ## Browser automation
