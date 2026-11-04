@@ -23,6 +23,7 @@ add notgiorgi/skills --skill '*'
 
 add mattpocock/skills \
   --skill ask-matt \
+  --skill chief-of-staff \
   --skill code-review \
   --skill codebase-design \
   --skill diagnosing-bugs \
