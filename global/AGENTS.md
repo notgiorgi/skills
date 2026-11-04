@@ -17,15 +17,19 @@
 
 These MCPs are exposed through the `executor` MCP (`mcp__executor__*` tools) — not as separate MCP servers. Use executor's execute/skills tools to reach them.
 
-- Linear, Pylon, Sentry.
+Call shape: `tools.<integration>.org.<connection>.<tool>(args)`. Namespaces can't be enumerated; find paths with `tools.search({namespace, query})`. Results arrive as `{ok, data}`: read `data.structuredContent`, falling back to `JSON.parse(data.content[0].text)`. Executor drops a server's own instructions and prompts, so the tool descriptions are all you get.
+
+- Linear (`linear.org.linearlightdash.*`), Pylon, Sentry.
 - `lightdash_cloud_feature_flags`: create, enable, disable Lightdash feature flags across all customers; also reads GCP traces, logs, alerts.
 - `lightdash_mcp`: Lightdash MCP on the internal production analytics instance.
-- `rainbowmachine_mcp`: preview environments for `lightdash/lightdash` PRs; create, exec into, fork, tail logs, kill.
+- `rainbowmachine_mcp` (`rainbowmachine_mcp.org.localRainbowmachineMcp.*`): preview environments for `lightdash/lightdash`; usage in the repo's `rainbow-env` skill. An "Internal tool error" from `create_env` has so far meant a slow call still running: `list_envs`, then repeat the same call.
 - `codex_computer_use`: control Mac apps on the real desktop. Default to this for computer use.
 
 ## Browser automation
 
 **Browser automation** means the T3 Code preview browser (`preview_*` tools) when the session runs in T3 Code, otherwise `agent-browser`. In T3 Code, reach for `agent-browser` only for a feature the preview browser lacks, such as pointer-visible video recording.
+
+On a Rainbow env, point the browser at the env URL (`url` tool) and read it with `preview_snapshot`; screenshot only for visual checks.
 
 ## PRs
 
