@@ -1,0 +1,7 @@
+interface:
+  display_name: "Review Loop"
+  short_description: "Review a change for standards, intent, risk, and PR claims"
+  default_prompt: "Use $review-loop to review this change before it ships."
+
+policy:
+  allow_implicit_invocation: false
