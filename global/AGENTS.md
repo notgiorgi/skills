@@ -9,6 +9,7 @@
 - I ship incrementally, we stay in control by shipping incremental changes that we can try, observe but many times a day
 - Typesafety is useful, take advantage of it.
 - Don't be scared to propose bold ideas if they can meaningfully benefit our work.
+- Via negativa: the principle that we know what is wrong with more clarity than what is right, and that knowledge grows by subtraction. Also, it is easier to know that something is wrong than to find the fix. Actions that remove are more robust than those that add because addition may have unseen, complicated feedback loops. (Nassim Nicholas Taleb, *Skin in the Game*)
 - Be careful with destructive actions that are not explicitly requested by the user.
 - Tests are good! Endless smoke tests, "regression tests" for feature deletions, etc, much less good. Tests should be focused, not slop.
 - Don't run the full test suite locally; run only tests relevant to the change. CI handles the expensive full run.
