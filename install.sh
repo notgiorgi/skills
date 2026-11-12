@@ -10,10 +10,34 @@ link "$PWD/global/AGENTS.md" ~/.agents/AGENTS.md
 link "$PWD/global/CLAUDE.md" ~/.claude/CLAUDE.md
 link ~/.agents/AGENTS.md ~/.codex/AGENTS.md
 
-# executor MCP (linear/pylon/sentry/lightdash behind one server); needs `executor` CLI on PATH
-if command -v executor >/dev/null; then
-  claude mcp add -s user executor -- executor mcp 2>/dev/null || true
-  codex mcp add executor -- executor mcp 2>/dev/null || true
+# executor v2 MCP (linear/pylon/sentry/lightdash/rainbow/... apps behind one server); needs `executor` service running.
+# install: curl -fsSL https://executor.sh/docs/install.sh | sh. Clients auth with the local API key from the keychain.
+plist=~/Library/LaunchAgents/sh.executor.v2.plist
+if [ "$(uname)" = Darwin ] && [ -x ~/.local/bin/executor ] && [ ! -e "$plist" ]; then
+  cat > "$plist" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>sh.executor.v2</string>
+  <key>ProgramArguments</key>
+  <array><string>$HOME/.local/bin/executor</string><string>service</string><string>start</string></array>
+  <key>EnvironmentVariables</key>
+  <dict><key>PATH</key><string>/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin</string></dict>
+  <key>RunAtLoad</key><true/>
+  <key>AbandonProcessGroup</key><true/>
+  <key>StandardOutPath</key><string>$HOME/Library/Logs/executor-v2.log</string>
+  <key>StandardErrorPath</key><string>$HOME/Library/Logs/executor-v2.err.log</string>
+</dict>
+</plist>
+EOF
+  launchctl bootstrap "gui/$(id -u)" "$plist" 2>/dev/null || true
+fi
+key=$(security find-generic-password -s com.usefulsoftware.executor.v2 -w 2>/dev/null | jq -r .apiKey 2>/dev/null || true)
+if command -v executor >/dev/null && [ -n "$key" ]; then
+  claude mcp add --transport http -s user executor http://127.0.0.1:4312/mcp -H "Authorization: Bearer $key" 2>/dev/null || true
+  grep -q '^\[mcp_servers\.executor\]' ~/.codex/config.toml 2>/dev/null ||
+    printf '\n[mcp_servers.executor]\nurl = "http://127.0.0.1:4312/mcp"\nhttp_headers = { Authorization = "Bearer %s" }\n' "$key" >> ~/.codex/config.toml
 fi
 
 add() { npx skills add "$@" -g --agent '*' -y; }
