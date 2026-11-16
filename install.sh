@@ -99,4 +99,6 @@ add t3dotgg/tstack \
 add cursor/plugins \
   --skill benchmark-checklist \
   --skill blast-radius \
+  --skill bro \
+  --skill ketchup \
   --skill maintain-verification-skill
