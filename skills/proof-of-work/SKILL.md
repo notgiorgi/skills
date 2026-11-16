@@ -20,8 +20,8 @@ Confirm the head is pushed (`git status -sb` shows no `ahead`) and, for a Rainbo
 
 Choose by harness:
 
-- **Codex**: spawn exactly one native sub-agent with no inherited conversation context (`fork_turns: "none"`).
-- **Claude Code in T3 Code**: call `delegate_task` with `target: { providerInstanceId: "codex" }`, `role: "test"`, `mode: "async"`, shared isolation (the proof must run against this checkout), and a `clientRequestId`. Keep the returned `taskId` and end the turn; completion wakes this thread. On `hasPendingQuestion`, read it through `t3_pending_request_list` / `t3_pending_request_read` with the `childThreadId`, answer with `t3_pending_request_respond` from facts the user gave, and otherwise relay it to the user.
+- **Codex**: spawn exactly one native sub-agent at `medium` reasoning effort with no inherited conversation context (`fork_turns: "none"`).
+- **Claude Code in T3 Code**: call `delegate_task` with `target: { providerInstanceId: "codex", options: { reasoningEffort: "medium" } }`, `role: "test"`, `mode: "async"`, shared isolation (the proof must run against this checkout), and a `clientRequestId`. Keep the returned `taskId` and end the turn; completion wakes this thread. On `hasPendingQuestion`, read it through `t3_pending_request_list` / `t3_pending_request_read` with the `childThreadId`, answer with `t3_pending_request_respond` from facts the user gave, and otherwise relay it to the user.
 - **Any other harness**: no spawn path; run the procedure yourself.
 
 Fill in this brief and send nothing else:
