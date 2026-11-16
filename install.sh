@@ -94,3 +94,9 @@ add typesafe-ai/skills \
 add t3dotgg/tstack \
   --skill council \
   --skill sol-loop
+
+# proof-of-work reads blast-radius and benchmark-checklist; maintain-verification-skill keeps its feature map current
+add cursor/plugins \
+  --skill benchmark-checklist \
+  --skill blast-radius \
+  --skill maintain-verification-skill

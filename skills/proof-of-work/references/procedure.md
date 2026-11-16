@@ -1,91 +1,125 @@
 # Proof procedure
 
+Instance mechanics (launch, doctor, login, database, cleanup) are in [`lightdash.md`](lightdash.md): read it before step 2. Per-feature recipes are indexed in [`../features/README.md`](../features/README.md): read the matching files before step 4.
+
 ## 1. Pin the claim
 
-Read the user request, current branch/diff, and originating ticket or spec when available. Resolve a ticket only from explicit input, branch/commit metadata, or an authoritative tracker; never invent one. Record the branch and exact revision, plus the baseline revision (merge-base with the default branch).
+The brief gives the user's Request and its Sources. Read them, the branch diff, and the originating ticket or pull request description. Resolve a ticket only from explicit input, branch or commit metadata, or an authoritative tracker. Record the branch, the exact revision, and the baseline revision (merge-base with the default branch).
 
-Classify the claim, then turn it into observable scenarios with explicit expected outcomes:
+Write the claim **in your own words**, as outcomes a user of the product can observe, each naming its exact surface. A source sentence about implementation becomes the behaviour it causes. One with no observable behaviour goes under Not proven as out of scope.
 
-- **Fix**: each scenario runs red then green. The defect reproduces on the baseline revision, then the same steps succeed on the pinned revision. A defect that does not reproduce on the baseline makes the scenario BLOCKED, not PASS.
-- **Improvement**: each scenario is a comparison. Capture the same measurement or interaction on the baseline and on the pinned revision, side by side.
-- **Feature**: each scenario shows the new behavior on the pinned revision.
+Turn the claim into scenarios with stable ids (`S1`, `S2`, ...) and explicit expected outcomes. On round N, read the ledger first: keep its ids, re-prove the open ones and the ones the new diff touches, and carry the rest forward.
 
-Include negative or continuation paths when they are part of the claim, such as approve and deny.
+Classify each scenario:
 
-Completion: every material part of the claim maps to an observable scenario and expected outcome; every fix or improvement scenario names its baseline capture.
+- **Fix**: red then green. The defect reproduces on the baseline revision, then the same steps succeed on the pinned revision.
+- **Improvement**: a comparison. Capture the same measurement or interaction on the baseline and on the pinned revision, side by side. For a performance number, follow the `benchmark-checklist` skill.
+- **Feature**: the new behaviour on the pinned revision.
 
-## 2. Pin the product instance
+For each scenario, name the **changed path** it exercises: the code in the diff that must run for the outcome to appear.
 
-Identify the running instance that belongs to this checkout before testing. Verify URLs, processes, and environment against the worktree rather than assuming defaults. In Lightdash, check `OTEL_SERVICE_NAME`, `PORT`, and `FE_PORT`, then confirm the browser, API, database, and trace scope point at that instance.
+Depth follows the Request. With none stated, cover the main path of each material part of the claim and the negative or continuation paths the claim names, such as approve and deny.
 
-Run the baseline in a separate `git worktree` at the baseline revision with its own ports and trace scope; remove it after capture.
+Completion: every material part of the claim maps to a scenario with an expected outcome and a changed path; every fix or improvement scenario names its baseline capture.
 
-Confirm each server is fresh before capturing: its process started after the last source change on its revision, and generated artifacts such as the OpenAPI spec match the source. Restart or regenerate when either is stale; a stale server proves the wrong revision.
+## 2. Pin the instance
 
-Completion: the proof can name the checkout, revision, product URL, and runtime/trace scope it exercised, and each server passed the freshness check.
+Get the pinned instance and, when a scenario needs one, the baseline instance, as `lightdash.md` Launch describes. Run its Doctor on each before the first drive and again after anything surprising.
+
+Completion: the proof can name the checkout, the revision and the URL of each instance, and each passed Doctor at its revision.
 
 ## 3. Choose causal evidence
 
-Use the smallest combination that proves the claim end to end. A boundary-crossing claim needs evidence on both sides of the boundary.
+Each scenario climbs the **evidence ladder** as far as the claim needs, and records the rung it reached:
+
+1. `claimed`: someone said so.
+2. `read`: a `file:line` shows it.
+3. `tested`: an automated test or direct invocation ran it.
+4. `observed`: the real product showed it through the user's surface.
+5. `corroborated`: observed, plus a second side that agrees: a database row, an API read, a log or trace, or red on baseline against green on pinned.
+
+A claim about product behaviour passes at `observed`. A fix, and any claim that crosses a boundary, passes at `corroborated`. Pure non-product behaviour passes at `tested`.
 
 | Claim | Typical evidence |
 | --- | --- |
 | Visible state or layout | Product URL + screenshot |
 | Interaction, approval, denial, or continuation | Video + final product state |
-| Agent/tool/runtime path | Product result + trace + persisted tool-call or log evidence |
+| Agent/tool/runtime path | Product result + persisted tool-call, log or trace evidence |
 | Persistence | Product/API result + targeted database before/after evidence |
-| Endpoint authorization | Real requests as allowed and denied identities, status/body, and trace/log when execution path matters |
+| Endpoint authorization | Real requests as allowed and denied identities, with status and body |
 | CLI or content-as-code | Real CLI command + resulting server or product state |
-| Pure non-product behavior | Focused automated test or direct invocation |
+| Pure non-product behaviour | Focused automated test or direct invocation |
 
-Tests and source inspection can support proof, but cannot substitute for product evidence when the claim is about product behavior.
-
-Completion: each scenario has enough independent evidence to rule out a merely plausible UI, mocked response, or unexecuted backend path.
+Completion: each scenario has a target rung, and its planned evidence rules out a merely plausible UI, a mocked response, and an unexecuted backend path.
 
 ## 4. Execute and capture
 
-Exercise the real product with sanitized synthetic data, in character as its user. First split each scenario into its fixture and its surface under proof. The fixture is everything the claim takes as given; seed it the cheapest way that leaves the proof real (database inserts, stubs, a synthetic user or agent). The surface under proof is the behavior the claim is about; produce it only through the path a real user would take, never by seeding state the user could not create. To prove agent compaction: seed the user and agent in the database, then start a thread from the product and send enough messages to trigger a compact. Every input typed into the product reads like a real user's, a plain question or task; ticket IDs and proof labels stay in the proof document. Preserve user work and connected state. Verification is read-only with respect to source code: report a failing claim instead of implementing a fix.
+Exercise the real product with sanitized synthetic data, in character as its user. First split each scenario into its fixture and its surface under proof. The fixture is everything the claim takes as given; seed it the cheapest way that leaves the proof real (database inserts, stubs, a synthetic user or agent). The surface under proof is the behaviour the claim is about; produce it only through the path a real user would take. To prove agent compaction: seed the user and agent in the database, then start a thread from the product and send enough messages to trigger a compact. Every input typed into the product reads like a real user's, a plain question or task; ticket ids and proof labels stay in the proof document. Preserve user work and connected state. Verification is read-only with respect to source code: report a failing claim instead of implementing a fix.
 
-Use browser automation for interaction, screenshots, videos, and product URLs. Before using `agent-browser`, run `agent-browser --help` and follow its current built-in guidance; keep command knowledge in the tool, not this skill. For desktop proof, set a `1440x1000` viewport before target navigation and capture. Use a claim-specific viewport for responsive or device behavior.
+Show that the **changed path** ran: a log line, database row, tool call or response field that only the new code produces. An outcome that appears without it proves the old path.
 
-Use the product's native interfaces where they strengthen causality. For local trace discovery and inspection, start with `maple --help`. Also consider targeted logs, `psql`, `curl`, a development CLI, or content-as-code. Inspect each tool's current help and repository guidance before use. Capture compact, relevant output rather than broad dumps.
+Run a scenario whose outcome varies between runs, such as model behaviour, at least three times per side, alternating baseline and pinned, and report the counts. Record which model answered.
 
-For a local Maple trace, generate its UI link from the active target:
+When an observation contradicts the expectation, check the observation method first: the instance, the persona, the flag state, the capture.
 
-```bash
-trace_id='<trace-id>'
-maple whoami --local --format json | jq -r --arg trace_id "$trace_id" '(.url | rtrimstr("/")) + "/#/traces/" + $trace_id'
-```
+For a temporal claim, capture one continuous video from the triggering action through the final continued state, with the pointer visible. Use separate scenarios when decisions lead to different paths. Capture compact, relevant output rather than broad dumps.
 
-For a temporal claim, capture one continuous video from the triggering action through the final continued state. The pointer and click ripple must be visible in every frame; when browser automation cannot show them, record with `agent-browser record start <path> --cursor`. Use separate scenarios when decisions lead to different paths.
+Completion: every scenario ran through the user's surface against the pinned instance, baseline captures ran against the baseline instance, each scenario's changed path is shown to have run, and captured artifacts expose no credentials, customer data, or unrelated private information.
 
-For every trace mentioned, include its clickable trace URL when the environment exposes one. Otherwise include the trace ID and exact command that reopens it. Link every created thread, dashboard, chart, saved content item, or other relevant product location.
+## 5. Assess regression
 
-Prefer durable product links. Clean disposable intermediates after capture. If cleanup would break evidence links, preserve those evidence records through handoff and list their identifiers and cleanup action in the proof document.
+Follow the `blast-radius` skill on the diff: find the one fact the change is safe because of, prove it as far up the evidence ladder as is cheap, and list the risks you confirmed and the ones you cleared. Probe the top confirmed risk in the product as scenario `R1`.
 
-Completion: all scenarios ran through the user's surface against the pinned instance, and baseline captures against the baseline instance; captured artifacts expose no credentials, customer data, or unrelated private information.
+When the Request limits depth, write `Regression: not assessed, depth limited by request`.
 
-## 5. Package the proof
+Completion: the safety fact is stated with its rung, or marked unproven.
 
-Choose the directory name from the ticket ID when one exists. Otherwise derive a short lowercase kebab-case slug from the claim, such as `homepage-ask-ai`. Copy [`../assets/PROOF.md`](../assets/PROOF.md) to `.local/proofs/<ticket-or-slug>/proof.md` in the checkout. Put media directly beside `proof.md` and use relative paths. Duplicate the evidence block for each scenario and remove unused fields and every placeholder.
+## 6. Judge
 
-Keep the summary short. Embed every image with Markdown. Embed every video with HTML `<video controls>` and add a normal link as fallback. Link all product locations and every linkable trace. Include targeted database, request, CLI, or log evidence inline or in compact `<details>` blocks.
+Give each scenario one status:
 
-Keep the proof document and assets untracked. Never stage or commit them.
+- **PASS**: the expected outcome reached its target rung.
+- **DEFECT**: the change misbehaves. Before recording it, run the same steps on the baseline; identical behaviour there makes it PRE-EXISTING. Give it a severity: `blocker` when the intended case is wrong, `should` when it is a real case users will hit inside the claim, `nit` for anything else.
+- **PRE-EXISTING**: wrong on the baseline too.
+- **INCONCLUSIVE**: it ran, and the evidence stops below the target rung or the difference is within run-to-run variation.
+- **UNREACHABLE**: it could not be run. Name the prerequisite and the route you attempted.
 
-Completion: the document contains the verdict, tested scenarios, revision/instance, all media, all relevant product and trace links, supporting evidence, caveats, and cleanup state.
+The verdict follows from the statuses:
 
-## 6. Audit the artifact
+- **FAIL**: at least one blocker or should defect.
+- **PASS**: every scenario passed. Nits and pre-existing behaviour are listed.
+- **PARTIAL**: no blocker or should defect, and at least one scenario is INCONCLUSIVE or UNREACHABLE.
+- **BLOCKED**: no scenario could run.
 
-Open the finished document and verify every local path exists, images render, videos play, external links target the pinned or baseline instance they claim, and evidence supports the stated verdict. Check `git status` confirms the proof artifacts are untracked and no unrelated files changed.
+The verdict line carries the tally, for example `PARTIAL: 5 of 6 pass, S4 unreachable (needs BigQuery credentials)`.
+
+Completion: every scenario has a status and rung, every DEFECT has a severity and its baseline result, and the verdict line follows from the table.
+
+## 7. Package the proof
+
+Choose the directory name from the ticket id when one exists. Otherwise derive a short lowercase kebab-case slug from the claim, such as `homepage-ask-ai`. The proof lives in `~/.local/proofs/<repo>/<ticket-or-slug>/`, outside the checkout so it survives the worktree; `<repo>` is the origin's repository name.
+
+- `proof.md` is the current truth: copy [`../assets/PROOF.md`](../assets/PROOF.md) on round 1 and rewrite it each round. Remove unused fields and every placeholder.
+- `ledger.tsv` is the history: copy [`../assets/ledger.tsv`](../assets/ledger.tsv) on round 1 and append one row per scenario every round. Rows are never edited; a later row for the same id supersedes an earlier one.
+- Media goes in `r<N>/` beside them, referenced by relative path.
+
+The verdict line and the captures that carry the claim come first, ahead of any provenance. Embed every image with Markdown, captioned with what it proves. Embed every video with HTML `<video controls>` and add a normal link as fallback. Put targeted database, request, CLI, or log evidence inline or in compact `<details>` blocks. Product links die with their instance, so each scenario's proof rests on captured media and output; links are for the reviewer's Try it window.
+
+Completion: the document has the verdict line, the carrying captures, the scenario table, per-scenario evidence, regression, try-it steps, what was not proven, provenance and cleanup state, and the ledger has this round's rows.
+
+## 8. Clean up and audit
+
+Clean up as `lightdash.md` Cleanup describes: the pinned instance stays up for the reviewer, everything else this run started goes, and the Cleanup section lists what remains with the command that removes it.
+
+Open the finished document. Look at every image and a frame of every video and confirm each shows what its scenario states. Verify every local path exists, the Try it URL answers, and the verdict line follows from the table.
 
 Return:
 
 - proof document absolute path;
-- PASS, FAIL, or BLOCKED verdict;
-- one line per scenario;
-- product and trace links;
-- preserved evidence records and cleanup state;
+- the verdict line;
+- one line per scenario with its status;
+- the regression safety fact and its rung;
+- the Try it URL and what remains running;
 - exact blockers or caveats.
 
-Completion: another person can open one document and independently inspect every claimed proof surface.
+Completion: another person can open one document, see whether the change works from its first screen, and independently inspect every claimed proof surface.
