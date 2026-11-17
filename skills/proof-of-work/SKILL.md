@@ -64,7 +64,15 @@ The reply alone lets the user decide. Write it in this order, in words a teammat
 6. Each call waiting on the user, with your pick.
 7. The proof document path.
 
-Hashes, ports and commands appear only where the user needs one to act. When the user wants the proof on the pull request, add one line to its description saying how the change was proven and attach the captures from item 2.
+Hashes, ports and commands appear only where the user needs one to act.
+
+## Put the proof on the pull request
+
+When the change has a pull request, its description carries the proof too: one line saying how the change was proven and the verdict, then the proof document's Look here first captures with their captions, before and after together for a fix. Link videos; GitHub won't embed them.
+
+GitHub renders only hosted images, and instance URLs die with the instance. Host each capture in a gist: `gh gist create` a placeholder note, `git clone` the gist, commit the images under names prefixed with the PR number and round, push, and embed each by its `gist.githubusercontent.com/.../raw/<commit-sha>/<file>` URL. Edit the existing description rather than replacing it, then open the PR and confirm every image renders.
+
+Completion: the PR description shows the verdict line and the Look here first captures, each rendering.
 
 ## Rounds
 
@@ -72,4 +80,4 @@ A re-run is a new **round** of the same proof: the same brief with `Round: N` an
 
 Budget three rounds. When a blocker or should defect is still open after the third, show both sides in two lines each and let the user decide; a spent budget leaves the verdict at FAIL.
 
-Completion: the primary agent handed off a checked proof document with its verdict, captures, regression note, try-it steps and open calls.
+Completion: the primary agent handed off a checked proof document with its verdict, captures, regression note, try-it steps and open calls, and any pull request carries the captures.
