@@ -10,6 +10,12 @@ Every change gets the loop before it ships. Size sets how many rounds, never whe
 
 The loop sequences other skills. Read each one when its step comes up; its rules live there.
 
+Spawn every reviewer at explicit medium reasoning effort, including re-checks.
+In T3, pass `target.options: { reasoningEffort: "medium" }` to `delegate_task`.
+For native Codex spawns, pass `fork_turns: "none"` and
+`reasoning_effort: "medium"`. Set these tool arguments even when the parent
+already uses medium.
+
 ## 1. Scope
 
 Pin base and diff as `$sol-loop` step 1 does, and find the standards files as `$code-review` step 3 does. Use that one base for every step. Mark the change **hot path** when it changes behaviour on shared code with many callers and no flag gating it.
