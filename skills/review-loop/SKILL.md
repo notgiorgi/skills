@@ -10,11 +10,12 @@ Every change gets the loop before it ships. Size sets how many rounds, never whe
 
 The loop sequences other skills. Read each one when its step comes up; its rules live there.
 
-Spawn every reviewer at explicit medium reasoning effort, including re-checks.
-In T3, pass `target.options: { reasoningEffort: "medium" }` to `delegate_task`.
+Spawn Codex reviewers at explicit medium reasoning effort, including re-checks.
+In T3, when targeting Codex, pass
+`target.options: { reasoningEffort: "medium" }` to `delegate_task`.
 For native Codex spawns, pass `fork_turns: "none"` and
 `reasoning_effort: "medium"`. Set these tool arguments even when the parent
-already uses medium.
+already uses medium. Other providers keep their own effort settings.
 
 ## 1. Scope
 
