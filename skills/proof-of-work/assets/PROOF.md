@@ -14,7 +14,7 @@
 
 | Id | Scenario and expected outcome | Status | Rung | Evidence |
 | --- | --- | --- | --- | --- |
-| S1 | <scenario> | <PASS, DEFECT (severity), PRE-EXISTING, INCONCLUSIVE or UNREACHABLE> | <rung reached> | [S1](#s1) |
+| S1 | <scenario> | <PASS, DEFECT (severity), PRE-EXISTING, INCONCLUSIVE or UNREACHABLE>; <fresh, or carried from `<sha>`> | <rung reached> | [S1](#s1) |
 
 ## Evidence
 
@@ -52,7 +52,7 @@
 
 - Open [<product location>](<url>) as `<persona email>`.
 - <The steps, as a user would do them.>
-- Stays up until <condition>; remove with `<command>`.
+- Stays up until <condition>; remove with `<command>`. Recreate the records with [`r<N>/setup.*`](<path>) `<env-url>`.
 
 ## Not proven
 

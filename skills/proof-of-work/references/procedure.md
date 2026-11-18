@@ -4,11 +4,11 @@ Instance mechanics (launch, doctor, login, database, cleanup) are in [`lightdash
 
 ## 1. Pin the claim
 
-The brief gives the user's Request and its Sources. Read them, the branch diff, and the originating ticket or pull request description. Resolve a ticket only from explicit input, branch or commit metadata, or an authoritative tracker. Record the branch, the exact revision, and the baseline revision (merge-base with the default branch).
+The brief gives the user's Request and its Sources. Read them, the branch diff, and the originating ticket or pull request description. Resolve a ticket only from explicit input, branch or commit metadata, or an authoritative tracker. Record the branch, the exact revision, and the **baseline** revision with why it was chosen: a revision the user named; else, for a stacked branch, the parent branch's head; else the merge-base with the default branch.
 
 Write the claim **in your own words**, as outcomes a user of the product can observe, each naming its exact surface. A source sentence about implementation becomes the behaviour it causes. One with no observable behaviour goes under Not proven as out of scope.
 
-Turn the claim into scenarios with stable ids (`S1`, `S2`, ...) and explicit expected outcomes. On round N, read the ledger first: keep its ids, re-prove the open ones and the ones the new diff touches, and carry the rest forward.
+Turn the claim into scenarios with stable ids (`S1`, `S2`, ...) and explicit expected outcomes. On round N, read the ledger first and pin the claim again from the current Sources: keep the ledger's ids, give new ids to anything the Sources added, re-prove the open ones, the new ones and the ones the new diff touches, and **carry** the rest. A carried scenario keeps its earlier status and the revision it was proven at.
 
 Classify each scenario:
 
@@ -79,7 +79,7 @@ Completion: the safety fact is stated with its rung, or marked unproven.
 Give each scenario one status:
 
 - **PASS**: the expected outcome reached its target rung.
-- **DEFECT**: the change misbehaves. Before recording it, run the same steps on the baseline; identical behaviour there makes it PRE-EXISTING. Give it a severity: `blocker` when the intended case is wrong, `should` when it is a real case users will hit inside the claim, `nit` for anything else.
+- **DEFECT**: the change misbehaves. Before recording it, run the same steps on the baseline; identical behaviour there makes it PRE-EXISTING. When the surface does not exist on the baseline, record `baseline: surface absent` instead. Give it a severity: `blocker` when the intended case is wrong, `should` when it is a real case users will hit inside the claim, `nit` for anything else.
 - **PRE-EXISTING**: wrong on the baseline too.
 - **INCONCLUSIVE**: it ran, and the evidence stops below the target rung or the difference is within run-to-run variation.
 - **UNREACHABLE**: it could not be run. Name the prerequisite and the route you attempted.
@@ -91,17 +91,18 @@ The verdict follows from the statuses:
 - **PARTIAL**: no blocker or should defect, and at least one scenario is INCONCLUSIVE or UNREACHABLE.
 - **BLOCKED**: no scenario could run.
 
-The verdict line carries the tally, for example `PARTIAL: 5 of 6 pass, S4 unreachable (needs BigQuery credentials)`.
+The verdict line carries the tally over every id in the ledger, latest row per id, and names each scenario that did not pass and each carried one, for example `PARTIAL: 5 of 6 pass (2 carried), S4 unreachable (needs BigQuery credentials)` or `PASS: 6 of 7 pass, S4 pre-existing`.
 
-Completion: every scenario has a status and rung, every DEFECT has a severity and its baseline result, and the verdict line follows from the table.
+Completion: every ledger id has a status and rung in the table, every DEFECT has a severity and its baseline result, and the verdict line follows from the table.
 
 ## 7. Package the proof
 
-Choose the directory name from the ticket id when one exists. Otherwise derive a short lowercase kebab-case slug from the claim, such as `homepage-ask-ai`. The proof lives in `~/.local/proofs/<repo>/<ticket-or-slug>/`, outside the checkout so it survives the worktree; `<repo>` is the origin's repository name.
+Name the directory after the ticket id; when the ticket spans several pull requests, `<ticket>-<short-pr-slug>`. With no ticket, derive a short lowercase kebab-case slug from the claim, such as `homepage-ask-ai`. The proof lives in `~/.local/proofs/<repo>/<name>/`, outside the checkout so it survives the worktree; `<repo>` is the origin's repository name.
 
-- `proof.md` is the current truth: copy [`../assets/PROOF.md`](../assets/PROOF.md) on round 1 and rewrite it each round. Remove unused fields and every placeholder.
-- `ledger.tsv` is the history: copy [`../assets/ledger.tsv`](../assets/ledger.tsv) on round 1 and append one row per scenario every round. Rows are never edited; a later row for the same id supersedes an earlier one.
-- Media goes in `r<N>/` beside them, referenced by relative path.
+- `proof.md` is the current truth: every round, write it fresh from [`../assets/PROOF.md`](../assets/PROOF.md), covering every ledger id, carried ones included. Remove unused fields and every placeholder. Earlier rounds live in the ledger and their media folders, never in copies of `proof.md`.
+- `ledger.tsv` is the history: copy [`../assets/ledger.tsv`](../assets/ledger.tsv) on round 1 and append one row per scenario every round, carried ones included. Rows are never edited; a later row for the same id supersedes an earlier one.
+- Media and fixture scripts go in `r<N>/` beside them, referenced by relative path.
+- Cite source as repo-relative `path:line` text; checkout paths die with the worktree.
 
 The verdict line and the captures that carry the claim come first, ahead of any provenance. Embed every image with Markdown, captioned with what it proves. Embed every video with HTML `<video controls>` and add a normal link as fallback. Put targeted database, request, CLI, or log evidence inline or in compact `<details>` blocks. Product links die with their instance, so each scenario's proof rests on captured media and output; links are for the reviewer's Try it window.
 
@@ -111,7 +112,7 @@ Completion: the document has the verdict line, the carrying captures, the scenar
 
 Clean up as `lightdash.md` Cleanup describes: the pinned instance stays up for the reviewer, everything else this run started goes, and the Cleanup section lists what remains with the command that removes it.
 
-Open the finished document. Look at every image and a frame of every video and confirm each shows what its scenario states. Verify every local path exists, the Try it URL answers, and the verdict line follows from the table.
+Run [`../scripts/check-proof`](../scripts/check-proof) `<proof-dir>` until it prints `ok`. Then look at every image and every frame in its `contact/` folder and confirm each shows what its scenario states, and that the Try it URL answers.
 
 Return:
 

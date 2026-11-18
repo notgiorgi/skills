@@ -1,0 +1,135 @@
+#!/usr/bin/env python3
+"""Audit a proof directory against the template; print problems, or `ok`.
+
+Usage: check-proof <proof-dir>
+Also extracts one mid-point frame per referenced video into <proof-dir>/contact/.
+"""
+import csv
+import re
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+SECTIONS = ["Look here first", "Scenarios", "Evidence", "Regression", "Try it", "Not proven", "Provenance", "Cleanup"]
+HTML_TAGS = {"video", "details", "summary", "br", "img", "a", "sub", "sup", "source", "p", "div", "span", "kbd", "b", "i", "code", "pre", "table", "tr", "td", "th"}
+STATUSES = ["PRE-EXISTING", "PASS", "DEFECT", "INCONCLUSIVE", "UNREACHABLE"]
+VIDEO_EXT = {".mp4", ".webm", ".mov"}
+
+
+def strip_code(text):
+    text = re.sub(r"```.*?```", "", text, flags=re.S)
+    return re.sub(r"`[^`\n]*`", "", text)
+
+
+def status_of(cell):
+    up = cell.upper()
+    return next((s for s in STATUSES if up.startswith(s)), None)
+
+
+def main(root):
+    problems = []
+    proof = root / "proof.md"
+    if not proof.is_file():
+        return [f"missing {proof}"]
+    text = proof.read_text()
+    prose = strip_code(text)
+
+    verdict = re.search(r"^\*\*Verdict:(?:\*\*)? ?(PASS|FAIL|PARTIAL|BLOCKED)\b", text, re.M)
+    if not verdict:
+        problems.append("no `**Verdict:** <PASS|FAIL|PARTIAL|BLOCKED>: ...` line")
+
+    headings = re.findall(r"^## (.+?)\s*$", text, re.M)
+    missing = [s for s in SECTIONS if s not in headings]
+    if missing:
+        problems.append(f"missing sections: {', '.join(missing)}")
+    elif [h for h in headings if h in SECTIONS] != SECTIONS:
+        problems.append("sections out of template order")
+
+    for tag in sorted(set(re.findall(r"<([A-Za-z][\w-]*)[^>\n]*>", prose))):
+        if tag.lower() not in HTML_TAGS:
+            problems.append(f"placeholder left: <{tag}...>")
+
+    refs = re.findall(r"\]\(([^)\s]+)\)", prose) + re.findall(r'\bsrc="([^"]+)"', prose)
+    local = {r.split("#")[0] for r in refs if not re.match(r"[a-z]+:|#", r)}
+    for ref in sorted(local):
+        path = root / ref
+        if ref.startswith("/"):
+            problems.append(f"absolute path, use a relative one: {ref}")
+        elif not path.exists():
+            problems.append(f"missing file: {ref}")
+
+    rows, col = [], None
+    for line in text.splitlines():
+        cells = [c.strip() for c in line.strip().strip("|").split("|")] if line.startswith("|") else []
+        if cells and cells[0] == "Id" and "Status" in cells:
+            col = cells.index("Status")
+        elif col is not None and cells and re.fullmatch(r"[SR]\d+[\w-]*", cells[0]) and len(cells) > col:
+            rows.append((cells[0], cells[col]))
+        elif not cells:
+            col = None
+    if not rows:
+        problems.append("no scenario table with `Id` and `Status` columns")
+    table = {sid: status_of(cell) for sid, cell in rows}
+    for sid, st in table.items():
+        if st is None:
+            problems.append(f"{sid}: status not one of {', '.join(STATUSES)}")
+
+    ledger = root / "ledger.tsv"
+    if not ledger.is_file():
+        problems.append("missing ledger.tsv")
+    else:
+        latest = {}
+        with ledger.open() as f:
+            for row in csv.DictReader(f, delimiter="\t"):
+                if row.get("id"):
+                    latest[row["id"].strip()] = (row.get("status") or "").strip()
+        for sid in sorted(set(latest) - set(table)):
+            problems.append(f"{sid}: in ledger, missing from the scenario table")
+        for sid in sorted(set(table) - set(latest)):
+            problems.append(f"{sid}: in the scenario table, no ledger row")
+        for sid in sorted(set(table) & set(latest)):
+            if table[sid] and status_of(latest[sid]) != table[sid]:
+                problems.append(f"{sid}: table says {table[sid]}, latest ledger row says {latest[sid]}")
+
+    if verdict and table:
+        statuses = [s for s in table.values() if s]
+        cells = dict(rows)
+        blocking = any(s == "DEFECT" and re.search(r"blocker|should", cells[i], re.I) for i, s in table.items())
+        if blocking:
+            expected = "FAIL"
+        elif statuses and all(s == "UNREACHABLE" for s in statuses):
+            expected = "BLOCKED"
+        elif any(s in ("INCONCLUSIVE", "UNREACHABLE") for s in statuses):
+            expected = "PARTIAL"
+        else:
+            expected = "PASS"
+        if verdict.group(1) != expected:
+            problems.append(f"verdict {verdict.group(1)} does not follow from the table ({expected})")
+
+    videos = [root / r for r in local if Path(r).suffix.lower() in VIDEO_EXT and (root / r).exists()]
+    if videos:
+        if not shutil.which("ffmpeg"):
+            problems.append("ffmpeg not found; view one frame of each video by hand")
+        else:
+            contact = root / "contact"
+            contact.mkdir(exist_ok=True)
+            for v in videos:
+                out = contact / (v.stem + ".png")
+                dur = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(v)],
+                                     capture_output=True, text=True).stdout.strip()
+                mid = str(float(dur) / 2) if dur else "0"
+                subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-ss", mid, "-i", str(v), "-frames:v", "1", str(out)])
+                print(f"frame: {out}")
+    return problems
+
+
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        sys.exit(__doc__)
+    found = main(Path(sys.argv[1]).expanduser())
+    for p in found:
+        print(p)
+    if found:
+        sys.exit(1)
+    print("ok")
