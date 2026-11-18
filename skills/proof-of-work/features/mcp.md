@@ -23,16 +23,17 @@ Preconditions:
 
 - `P=3675b69e-8324-4110-bdca-059031aa8da3` (seed project `SEED_PROJECT`).
 - MCP on for the org: `curl -H "Authorization: ApiKey $PAT" "$ENV_URL/api/v1/aiAgents/settings"` shows `"mcpEnabled": true`. Rainbow sets `MCP_ENABLED=true`; elsewhere the `ai-copilot` flag also enables it.
+- `query` and `get_query_result` are listed only with the `compose-sql-runner` flag on (it is in previews) and a caller who can manage Explore; `sql` nodes also need SQL Runner access.
 - Every request sends `-H "Authorization: ApiKey $PAT" -H 'Content-Type: application/json' -H 'Accept: application/json, text/event-stream'`; below, `$H` stands for these three headers.
 
 - **Reject anonymous.** `curl -i -X POST "$ENV_URL/api/v1/mcp/projects/$P" -H 'Content-Type: application/json' -d '{}'`. Status 401 with a `WWW-Authenticate: Bearer resource_metadata=...` header.
 - **Initialize (optional).** `curl $H "$ENV_URL/api/v1/mcp/projects/$P" -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"proof","version":"1"}}}'`. `result.serverInfo.name` is `Lightdash MCP Server`; the response header `Mcp-Session-Id` names the client session.
 - **List tools.** `curl $H "$ENV_URL/api/v1/mcp/projects/$P" -d '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}'`. `result.tools[].name` includes `query`, `run_metric_query`, `run_sql`, `get_query_result`, `read_content`.
-- **Run a query.** `curl $H "$ENV_URL/api/v1/mcp/projects/$P" -d '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"query","arguments":{"projectUuid":"'$P'","queries":[{"sourceType":"sql","nodeId":"numbers","title":"Numbers","description":"Synthetic numbers","sql":"SELECT generate_series(1,40) AS value","limit":500}]}}}'`. `result.structuredContent` has `status: "done"`, `rowCount: 40`, `sessionId`, and `nodes[]` with `queryUuid`, `columns` and `sample`; `result.content[0].text` repeats it as text with a CSV preview.
+- **Run a query.** `curl $H "$ENV_URL/api/v1/mcp/projects/$P" -d '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"query","arguments":{"projectUuid":"'$P'","queries":[{"sourceType":"sql","nodeId":"numbers","title":"Numbers","description":"Synthetic numbers","sql":"SELECT generate_series(1,40) AS value","limit":500}]}}}'`. `result.structuredContent` has `status: "done"`, `rowCount: 40`, every terminal row in `rows`, `sessionId`, and `nodes[]` with `queryUuid`, `columns` and `sample` (null on the terminal node); `result.content[0].text` repeats it as text with the rows as CSV. Node kinds: `semanticLayer`, `sql`, `duckdb`, `merge` (joins semanticLayer nodes), `python`.
 - **Reuse a node.** Call `query` again with `"sessionId":"<sessionId>"` and only the new node `{"sourceType":"duckdb","nodeId":"total","title":"Total","description":"Sum of numbers","sql":"SELECT sum(value) AS total FROM numbers","references":["numbers"],"limit":10}`. It returns `total` = 820 without resubmitting `numbers`.
 - **Read rows.** `tools/call` `get_query_result` with `{"queryUuid":"<nodes[].queryUuid>"}`. Returns the node's rows.
 - **Tool error.** A bad call returns HTTP 200 with `result.isError: true` and the reason in `result.content[0].text`; protocol errors use JSON-RPC `error`.
-- **Second side.** `guest: runuser -u postgres -- psql -d postgres -XAt -c "select tool_name, status, error_message, duration_ms, client_name from mcp_tool_call where project_uuid='$P' order by created_at desc limit 5"`. One row per call, `direction` = `inbound`.
+- **Second side.** `guest: runuser -u postgres -- psql -d postgres -XAt -c "select tool_name, status, error_message, duration_ms, client_name from mcp_tool_call where project_uuid='$P' order by created_at desc limit 5"`. One row per call, `tools/list` included, `direction` = `inbound`.
 
 ## Gotchas
 

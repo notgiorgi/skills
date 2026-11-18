@@ -12,7 +12,8 @@ The maintained recipes for driving Lightdash features the way a user does. Read 
 ## Features
 
 - [AI agent thread](ai-agent-thread.md): pick an agent, run a turn, read tool calls and artifacts, SQL approval, follow-ups.
-- [Dashboards and saved charts](dashboards-and-charts.md): open, edit, filter, parameters, duplicate, delete, roles, minimal page, embed.
+- [Dashboards and saved charts](dashboards-and-charts.md): open, edit, filter, parameters, history, duplicate, delete, roles, minimal page, embed.
+- [Composer charts](composer-charts.md): pipeline charts as dashboard tiles, run, versions and rollback.
 - [Content as code](content-as-code.md): CLI download and upload, and the `/code/...` API.
 - [MCP server](mcp.md): auth, listing tools, the composer `query` tool, node reuse.
 - [Slack agent](slack.md): local instance only, through a tunnel.

@@ -6,16 +6,16 @@ How to get, check, drive and tear down the instance a proof runs on. Preview env
 
 Default to a **Rainbow env**, through `tools.rainbow.*` on the `executor` MCP. Run locally only when the user says so or the feature needs it; see Local instance.
 
-- **Pinned**: an open pull request already has `lightdash--pr-<N>`. For a pushed branch without one, `create_env({repo: "lightdash/lightdash", branch, name: "<slug>-proof"})`.
-- **Baseline**: `create_env({repo: "lightdash/lightdash", branch: "<merge-base sha>", name: "<slug>-base"})`. `branch` accepts a sha.
-- **Waiting on a PR preview**: one `pr_status({pr, wait_sec})` call blocks until it is ready or failed; `build_log({pr})` explains a failure.
-- **Waiting on `create_env`**: the call can outlive the executor's time limit and return a 502 while the build continues. Then run [`../scripts/wait-healthy`](../scripts/wait-healthy) `<env-url> [timeout-seconds]`, which blocks until the instance answers healthy and exits 1 on timeout. The URL is any listed env's URL with the name swapped. Send `create_env` a second time only after that wait times out and `list_envs` still lacks the name.
+- **Pinned**: `create_env({repo: "lightdash/lightdash", branch, name: "<slug>-proof"})`, an env this proof owns. Use the pull request's `lightdash--pr-<N>` only when the user names it; it belongs to the PR's reviewers.
+- **Baseline**: `create_env({repo: "lightdash/lightdash", branch: "<baseline sha>", name: "<slug>-base"})`. `branch` accepts a sha.
+- **Redeploy** after a push: `create_env` again with the same name; the URL stays.
+- **Waiting**: `create_env`, and an `exec` running past ~25 s, answer `{status: "working", task_id}`. Then run [`../scripts/wait-healthy`](../scripts/wait-healthy) `<env-url> [timeout-seconds]` (the URL is `https://<name>.lightdash.rainbowmachine.dev`), or call `task_status({task_id, wait_sec: 25})` until it returns the call's result. A PR preview waits with one `pr_status({pr, wait_sec})`; `build_log({pr})` explains a failure.
 
 ## Doctor
 
 Run before the first drive and after anything surprising. With `ENV_URL` set to the env's base URL and `PAT=ldpat_deadbeefdeadbeefdeadbeefdeadbeef` (the public seed token):
 
-- `list_envs`: the env is `running` and its `sha` equals the revision under proof. This is the freshness check; the guest's processes and bundles need no inspection.
+- `list_envs`: the env is `running` or `hibernated` (the first request wakes it in seconds) and its `sha` equals the revision under proof. This is the freshness check. One exception: a 422 naming a request field the branch added means stale generated API routes; run `guest: cd /usr/app && pnpm -F backend generate-api && systemctl restart rainbow-dev.service`, then Doctor again.
 - `curl -fsS "$ENV_URL/api/v1/health"` returns `results.healthy: true` and `mode: "pr"`.
 - `curl -fsS -H "Authorization: ApiKey $PAT" "$ENV_URL/api/v1/user"` returns `demo@lightdash.com`.
 
@@ -44,15 +44,17 @@ Feature recipes are in [`../features/`](../features/README.md). Shared facts:
 - API from outside: the PAT header, or a session with `curl -c jar -H 'Content-Type: application/json' -d '{"email":"demo3@lightdash.com","password":"demo_password!"}' "$ENV_URL/api/v1/login"` then `curl -b jar ...`.
 - API inside the guest: the PAT against `http://localhost:8080`. The session cookie is secure-only, so it works from outside alone.
 
-**Feature flags.** `GET $ENV_URL/api/v2/feature-flag` lists resolved values; `POST .../feature-flag/<id>` with `{"enabled": true}` sets an org override; `DELETE` on the same URL drops it. `ai-copilot` reads `false` on a fresh preview and is set this way. `set_env` refuses any variable Rainbow stores as a secret.
+**Feature flags.** `GET $ENV_URL/api/v2/feature-flag` lists resolved values, and is the source of truth for preview defaults; `POST .../feature-flag/<id>` with `{"enabled": true}` sets an org override; `DELETE` on the same URL drops it. Only an org admin can call these. Set an override only when the claim is about a flag's state, and drop it at cleanup.
+
+**Settings.** `set_env({env, set})` changes a server variable and restarts in ~20 s, but refuses any value equal to a stored secret's value, and `"true"` is one: a boolean setting cannot be turned on this way. Read `get_env` before and after.
 
 **Database.** `guest: runuser -u postgres -- psql -d postgres -XAt -c "select 1"`. `exec` runs as root with no `PG*` variables, the socket admits only the OS user `postgres`, and the app database is named `postgres`.
 
-**Files.** Out of the guest: write under `/usr/app/packages/frontend/build/<dir>/`, fetch `$ENV_URL/<dir>/<file>`, delete the dir. The guest has `grep`, `python3` and `node`, and no `rg` or `jq`.
+**Files.** Out of the guest: write under `/usr/app/packages/frontend/build/<dir>/`, fetch `$ENV_URL/<dir>/<file>`, delete the dir. Into the guest: base64 the file into an `exec` command. `exec` output is cut at 64 KB. The guest has `grep`, `python3` and `node`, and no `rg` or `jq`.
 
 ## Evidence
 
-- **Captures**: a 1440x1000 viewport for desktop proof, a claim-specific one for responsive behaviour. Text snapshot by default, screenshot for anything visual. Video with the browser tool's recording; when the pointer must be visible, `agent-browser record start <file> --cursor`. Run `agent-browser --help` before first use.
+- **Captures**: drive the browser with `agent-browser --session <slug>` from the first step; the T3 preview browser stops producing screenshot frames in proof-agent threads. A 1440x1000 viewport for desktop proof, a claim-specific one for responsive behaviour. Text snapshot by default, screenshot for anything visual, `agent-browser record start <file> --cursor` for video. Capture after the page settles: a tile still loading is not evidence. Hover-only controls need a real pointer move before the click. Run `agent-browser --help` before first use.
 - **Second side**: database rows, API reads, `logs` with service `dev`, and mail the app sent (`guest: curl -s localhost:8025/api/v1/messages`).
 - **Traces**: previews export none; use the second-side sources above.
 - **Where rows live**: `saved_queries` and `saved_queries_versions`; `dashboards`, `dashboard_versions`, `dashboard_tiles`; `feature_flag_overrides`; `query_history`; `ai_thread`, `ai_prompt`, `ai_agent_tool_call`, `ai_agent_tool_result`; `mcp_tool_call`.
@@ -60,8 +62,9 @@ Feature recipes are in [`../features/`](../features/README.md). Shared facts:
 ## Cleanup
 
 - Keep the pinned env running for the reviewer. A `lightdash--pr-<N>` env belongs to its pull request.
-- `kill_env` every other env this run created, then read `list_envs` and paste the names that remain into the proof's Cleanup section.
-- Restore what the run changed on the pinned env: flag overrides, agent settings, minted PATs, and content the proof created, except the records Try it points at.
+- `kill_env({env: "<name>"})` every other env this run created, then read `list_envs` and paste the names that remain into the proof's Cleanup section.
+- Restore what the run changed on the pinned env: flag overrides, agent settings and minted PATs.
+- Fixtures are code: `r<N>/setup.*` creates the Try it records against an env URL and `r<N>/cleanup.*` removes them. Leave the Try it records up unless the brief says to remove them; Try it then says to run setup.
 - Evidence files stay.
 
 ## Unreachable on previews
@@ -71,16 +74,16 @@ Each of these makes a scenario UNREACHABLE with the prerequisite shown:
 - **Other warehouses**: only the seeded Postgres exists. Needs user-supplied credentials, for example a BigQuery service-account key, to create a project.
 - **Image and PDF deliveries, unfurls**: no headless browser service. CSV and XLSX deliveries work and land in the guest's mail catcher.
 - **Slack**: a preview cannot receive Slack events. Needs a local instance; see [`../features/slack.md`](../features/slack.md).
-- **Soft delete and other secret-managed settings**: `set_env` refuses them. Needs the variable in `rainbow.toml` on the branch and a redeploy.
-- **Outbound calls**: only `[[egress.allow]]` hosts connect. Needs the host added to `rainbow.toml` on the branch.
+- **Boolean settings such as `SOFT_DELETE_ENABLED`**: `set_env` refuses `"true"` (see Settings). Needs the variable in `rainbow.toml` on the branch and a redeploy.
+- **Git write-back and GitHub App access**: the project has no git repo (`hasGithub: false`). Needs a real dbt git connection.
+- **Outbound calls**: only `[[egress.allow]]` hosts connect; `egress` lists refused hosts. Needs the host added to `rainbow.toml` on the branch.
 - **Browser notifications**: the automation browser denies the permission. Needs a context that grants it.
 
 ## Local instance
 
-For Slack, or when the user asks for local. The `lightdash-setup-worktree` skill creates an isolated instance with its own ports and database.
+For Slack, or when the user asks for local. The `lightdash-setup-worktree` skill creates and tears down an isolated instance with its own ports and database; a baseline is a second such instance at the baseline revision.
 
-- Identify the instance that belongs to the checkout from `OTEL_SERVICE_NAME`, `PORT` and `FE_PORT`, and confirm the browser, API, database and trace scope point at it.
+- Identify the instance that belongs to the checkout from `PORT` and `FE_PORT`, and confirm the browser, API and database point at it.
 - Fresh means each server process started after the last source change on its revision, and generated artifacts such as the OpenAPI spec match the source.
-- The baseline runs in a separate `git worktree` at the baseline revision with its own ports and trace scope. One Vite server per checkout.
-- Traces: start with `maple --help`. Link a local trace with `maple whoami --local --format json | jq -r --arg trace_id "$trace_id" '(.url | rtrimstr("/")) + "/#/traces/" + $trace_id'`.
-- Cleanup removes the baseline worktree, its database and its servers; Doctor there is the freshness check above plus the health and user calls against `http://localhost:$FE_PORT`.
+- Traces: the Lightdash repo's `debug-local` skill.
+- Doctor there is the freshness check above plus the health and user calls against `http://localhost:$FE_PORT`.
