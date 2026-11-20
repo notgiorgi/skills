@@ -7,7 +7,11 @@ A user saves a multi-step AI answer (a pipeline of `semanticLayer`, `sql`, `duck
 - `cc-create` creates a composer chart owned by a dashboard (API, or `Save` on an AI composer answer).
 - `cc-tile` adds it as a `composer_chart` tile on view, minimal and edit pages.
 - `cc-run` runs the stored pipeline for a tile, with dashboard filters and parameters.
-- `cc-export` downloads the tile's data (`Download data` in `Tile actions`).
+- `cc-export` downloads the tile's data (`Download data` in `Tile actions`) or its picture (`Export image`: PNG or SVG, opaque or transparent; not for table, big number, custom or map charts).
+- `cc-lineage` shows the pipeline's nodes (`View lineage` in `Tile actions`).
+- `cc-ask-ai` opens Ask AI with the tile pinned (`Ask AI Agent` on the tile header; hidden on minimal and embed pages).
+- `cc-agent` lets an AI agent or MCP client read, run, edit and create composer charts; new warehouse SQL in an edit or create waits for SQL approval.
+- `cc-promote` promotes a dashboard with fresh copies of its composer charts.
 - `cc-rollback` restores a dashboard version and with it each chart's pipeline.
 - `cc-duplicate` copies a dashboard with fresh copies of its composer charts; deleting the dashboard deletes them.
 - `cc-code` reads and writes `/code/composerCharts`; a changed pipeline adds a chart version.
@@ -15,7 +19,7 @@ A user saves a multi-step AI answer (a pipeline of `semanticLayer`, `sql`, `duck
 ## How to get to it (user POV)
 
 - AI thread: on a composer answer, `Quick actions` > `Save` opens `Save chart`: `Chart name`, `Next`, pick `Space` and `Dashboard`, `Save`. Afterwards the menu offers `View on dashboard`.
-- Dashboard `/projects/$P/dashboards/$D/view`: the tile body is `[data-testid="composer-chart-visualization"]`, its menu `Tile actions`.
+- Dashboard `/projects/$P/dashboards/$D/view`: the tile body is `[data-testid="composer-chart-visualization"]`; hovering it shows `Ask AI Agent` and `Tile actions` (`Copy link to tile`, `View lineage`, `Download data`, `Export image`, `Edit tile content`).
 - `Dashboard actions` > `Version history` (`/projects/$P/dashboards/$D/history`): a row's dots menu > `Restore this version`, then `Restore`.
 
 ## Driving it
@@ -31,6 +35,8 @@ Preconditions:
 - **Read.** `GET /api/v2/projects/$P/composer-charts/$C` returns the current `versionUuid`, `pipeline` and `chart`.
 - **New version.** Take `results.composerCharts[0]` from `GET /api/v1/projects/$P/code/composerCharts?ids=$SLUG`, change `pipeline`, and POST the whole document to `/api/v1/projects/$P/code/composerCharts/$SLUG`: `results.action` is `update` and the chart gets a new `versionUuid`.
 - **Rollback.** Save the dashboard again (GET it, PATCH back its `tiles`, `tabs`, `filters`) so a dashboard version follows the chart change. Pick an earlier `versionUuid` from `GET /api/v1/dashboards/$D/history` (`results.history[]`, newest first) and `POST /api/v1/dashboards/$D/rollback/$V` with `{}`. The chart now shows the pipeline current when that version was saved, under a new `versionUuid`.
+- **Agent.** Ask the agent about the chart by name, e.g. `What does the Proof composer chart on the Proof dashboard show?`. Its tool calls include `readContent` with `type: "composer_chart"` and `runContentQuery` on a `dashboardChart` source.
+- **Promote.** As `Promote` in `dashboards-and-charts.md`: `promoteDiff` lists the chart under `composerCharts` (`create`), and the upstream dashboard's `composer_chart` tile points at a new chart uuid.
 - **DB.** `composer_charts` (owner `dashboard_uuid`), `composer_chart_versions` (`pipeline`, `chart`), `dashboard_tile_composer_charts` (tile to chart per dashboard version); a saved AI answer sets `ai_artifact_versions.saved_composer_chart_uuid`.
 
 ## Gotchas

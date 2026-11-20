@@ -8,7 +8,9 @@ Lightdash serves a Model Context Protocol server over Streamable HTTP. An MCP cl
 - `mcp-list` lists the tools with their schemas.
 - `mcp-query` runs the composer `query` tool and returns rows.
 - `mcp-result` pages a finished or still-running query via `get_query_result`.
-- `mcp-other` covers the other tools (`run_metric_query`, `run_sql`, `read_content`, `find_content`, `render_chart`, data app and custom chart type tools).
+- `mcp-content` reads, edits and creates composer charts through `read_content`, `edit_content`, `create_content` with `type: "composer_chart"` (create `from: "node"` with `sessionId`, `nodeId`, `dashboardSlug`, or `from: "json"`).
+- `mcp-chart-app` serves the `render_chart` UI resource `ui://render-chart/chart.html`.
+- `mcp-other` covers the other tools (`run_metric_query`, `run_sql`, `find_content`, data app and custom chart type tools).
 - `mcp-record` stores every tool call for audit.
 
 ## How to get to it (user POV)
@@ -23,13 +25,13 @@ Preconditions:
 
 - `P=3675b69e-8324-4110-bdca-059031aa8da3` (seed project `SEED_PROJECT`).
 - MCP on for the org: `curl -H "Authorization: ApiKey $PAT" "$ENV_URL/api/v1/aiAgents/settings"` shows `"mcpEnabled": true`. Rainbow sets `MCP_ENABLED=true`; elsewhere the `ai-copilot` flag also enables it.
-- `query` and `get_query_result` are listed only with the `compose-sql-runner` flag on (it is in previews) and a caller who can manage Explore; `sql` nodes also need SQL Runner access.
+- `query` is listed only with the `compose-sql-runner` flag on (it is in previews), a caller who can manage Explore, and, on an agent-pinned connection, the agent's `enableDataAccess` and `enableComposerQueries`; `sql` nodes also need SQL Runner access. `get_query_result` comes with any of `query`, `run_sql`, `run_metric_query`.
 - Every request sends `-H "Authorization: ApiKey $PAT" -H 'Content-Type: application/json' -H 'Accept: application/json, text/event-stream'`; below, `$H` stands for these three headers.
 
-- **Reject anonymous.** `curl -i -X POST "$ENV_URL/api/v1/mcp/projects/$P" -H 'Content-Type: application/json' -d '{}'`. Status 401 with a `WWW-Authenticate: Bearer resource_metadata=...` header.
+- **Reject anonymous.** `curl -i -X POST "$ENV_URL/api/v1/mcp/projects/$P" -H 'Content-Type: application/json' -d '{}'`. Status 401 with `WWW-Authenticate: Bearer resource_metadata="$ENV_URL/api/v1/oauth/.well-known/oauth-protected-resource"`.
 - **Initialize (optional).** `curl $H "$ENV_URL/api/v1/mcp/projects/$P" -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"proof","version":"1"}}}'`. `result.serverInfo.name` is `Lightdash MCP Server`; the response header `Mcp-Session-Id` names the client session.
 - **List tools.** `curl $H "$ENV_URL/api/v1/mcp/projects/$P" -d '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}'`. `result.tools[].name` includes `query`, `run_metric_query`, `run_sql`, `get_query_result`, `read_content`.
-- **Run a query.** `curl $H "$ENV_URL/api/v1/mcp/projects/$P" -d '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"query","arguments":{"projectUuid":"'$P'","queries":[{"sourceType":"sql","nodeId":"numbers","title":"Numbers","description":"Synthetic numbers","sql":"SELECT generate_series(1,40) AS value","limit":500}]}}}'`. `result.structuredContent` has `status: "done"`, `rowCount: 40`, every terminal row in `rows`, `sessionId`, and `nodes[]` with `queryUuid`, `columns` and `sample` (null on the terminal node); `result.content[0].text` repeats it as text with the rows as CSV. Node kinds: `semanticLayer`, `sql`, `duckdb`, `merge` (joins semanticLayer nodes), `python`.
+- **Run a query.** `curl $H "$ENV_URL/api/v1/mcp/projects/$P" -d '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"query","arguments":{"projectUuid":"'$P'","queries":[{"sourceType":"sql","nodeId":"numbers","title":"Numbers","description":"Synthetic numbers","sql":"SELECT generate_series(1,40) AS value","limit":500}]}}}'`. `result.structuredContent` has `status: "done"`, `rowCount: 40`, every terminal row in `rows`, `sessionId`, and `nodes[]` with `queryUuid`, `columns` and `sample` (null on the terminal node); `result.content[0].text` repeats it as text with the rows as CSV. Node kinds: `semanticLayer`, `sql`, `duckdb`, `merge` (joins semanticLayer nodes), `python`, `external` (DuckDB over uploaded or connected tables).
 - **Reuse a node.** Call `query` again with `"sessionId":"<sessionId>"` and only the new node `{"sourceType":"duckdb","nodeId":"total","title":"Total","description":"Sum of numbers","sql":"SELECT sum(value) AS total FROM numbers","references":["numbers"],"limit":10}`. It returns `total` = 820 without resubmitting `numbers`.
 - **Read rows.** `tools/call` `get_query_result` with `{"queryUuid":"<nodes[].queryUuid>"}`. Returns the node's rows.
 - **Tool error.** A bad call returns HTTP 200 with `result.isError: true` and the reason in `result.content[0].text`; protocol errors use JSON-RPC `error`.
@@ -41,5 +43,6 @@ Preconditions:
 - The transport is stateless: each POST stands alone, so `tools/call` works without `initialize`.
 - `query` waits up to 50 s, then answers `status: "running"` with a `queryUuid`; poll `get_query_result` with it.
 - A `query` call returns at most 5 unread nodes; more fail with a message asking to combine them.
-- Tool descriptions cached by an MCP client or proxy can predate the deploy. Read the live `tools/list` before claiming a schema or description change.
+- Tool descriptions cached by an MCP client or proxy can predate the deploy, and the committed `mcp-tools-1.0.json` snapshot omits runtime inputs such as `query`'s `sessionId`. Read the live `tools/list` before claiming a schema or description change.
+- An org whose MCP project access is `selected` refuses other projects with `MCP_PROJECT_NOT_ALLOWED`.
 - A `Bearer ldpat_...` header works too; the server rewrites it to `ApiKey`.

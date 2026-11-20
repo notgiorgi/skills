@@ -9,6 +9,7 @@ A Slack user mentions the Lightdash bot in a channel mapped to an AI agent. The 
 - `slack-table` posts results as a native `data_table`.
 - `slack-chart` posts charts as native `data_visualization` (flag `ai-agent-slack-native-charts`) or PNG cards.
 - `slack-follow-up` continues the thread from a Slack reply.
+- `slack-service-account` runs a mapped channel's mentions as a chosen service account instead of each person or the installer.
 - `slack-harness` renders or posts a chart from rows without the agent (dev only).
 
 ## How to get to it (user POV)
@@ -22,8 +23,8 @@ Preconditions:
 
 - The placeholders in angle brackets resolve from `~/.config/proof-of-work/local.md`, a private file on this machine.
 - Slack reaches only a local dev server. A Rainbow env cannot receive Slack events.
-- The local server runs the claimed revision with `SITE_URL=https://<tunnel-host>` and the Slack app variables (`SLACK_CLIENT_ID`, `SLACK_CLIENT_SECRET`, `SLACK_SIGNING_SECRET`, `SLACK_STATE_SECRET`) copied from `<slack-env-file>` into the instance's gitignored `.env.development.local`. No `SLACK_APP_TOKEN`: events arrive over HTTP.
-- Its database holds the Slack installation (`slack_auth_tokens`, with `ai_agents_enabled` true and `ai_links_only` false, or the bot ignores mentions or drops tables and charts) and one agent mapped to `<test-channel>` (agent `integrations: [{"type":"slack","channelId":"<test-channel-id>"}]`). Copying the main dev database brings both, plus the linked Slack identity.
+- The local server runs the claimed revision with `SITE_URL=https://<tunnel-host>` and the Slack app variables (`SLACK_CLIENT_ID`, `SLACK_CLIENT_SECRET`, `SLACK_SIGNING_SECRET`, `SLACK_STATE_SECRET`) copied from `<slack-env-file>` into the instance's gitignored `.env.development.local`. Leave `SLACK_SOCKET_MODE` unset so events arrive over HTTP.
+- Its database holds the Slack installation (`slack_auth_tokens`, with `ai_agents_enabled` true and `ai_links_only` false, or the bot ignores mentions or drops tables and charts; tables and charts also need the agent's `enableDataAccess`) and one agent mapped to `<test-channel>` (agent `integrations: [{"type":"slack","channelId":"<test-channel-id>"}]`). Copying the main dev database brings both, plus the linked Slack identity.
 - `PSQL` is the command that reaches the instance's Postgres, e.g. `docker exec <db-container> psql -U postgres`.
 - `$ENV_URL` is `https://<tunnel-host>`, `$PAT` the instance's PAT, `P=3675b69e-8324-4110-bdca-059031aa8da3`.
 
@@ -43,6 +44,6 @@ Preconditions:
 - Point the tunnel at the frontend port: Vite proxies `/api` and `/slack/events` to the API. `SITE_URL` must be the tunnel host, or Slack cannot fetch chart images.
 - Re-running the dev bootstrap resets `SITE_URL` to localhost; set it back and restart the PM2 processes, which keep their start-time env.
 - In the org's multi-agent channel the bot may post an agent picker and wait, and with `ai_multi_agent_require_mention` it ignores messages without a mention. In a regular channel with several agents mapped it answers with the first; in an unmapped one it asks to link an agent. Map exactly one agent to `<test-channel>`.
-- `aiRequireOAuth` on the installation makes the mentioning Slack user need a linked Lightdash identity; with it off, an unlinked user still needs agent-permission enforcement off to act as the installer.
+- `aiRequireOAuth` on the installation makes the mentioning Slack user need a linked Lightdash identity; with it off, an unlinked user still needs agent-permission enforcement off to act as the installer. A channel with a service account (agent edit page, `Permissions`; `ai_agent_slack_integration.service_account_uuid`) skips both, and refuses DMs, shared channels, guests and an expired account with an ephemeral message.
 - `slack-send` rejects `"threadTs": null` with 422 despite its docs; pass an existing thread ts.
 - Post a notice in the channel before toggling org flags, and restore every flag, agent setting and tunnel target you changed.

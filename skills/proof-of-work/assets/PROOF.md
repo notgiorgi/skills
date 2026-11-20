@@ -14,7 +14,7 @@
 
 | Id | Scenario and expected outcome | Status | Rung | Evidence |
 | --- | --- | --- | --- | --- |
-| S1 | <scenario> | <PASS, DEFECT (severity), PRE-EXISTING, INCONCLUSIVE or UNREACHABLE>; <fresh, or carried from `<sha>`> | <rung reached> | [S1](#s1) |
+| S1 | <scenario> | <PASS, DEFECT (severity), PRE-EXISTING, INCONCLUSIVE, UNREACHABLE or WITHDRAWN>; <fresh, or carried from `<sha>`> | <rung reached> | [S1](#s1) |
 
 ## Evidence
 

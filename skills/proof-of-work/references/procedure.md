@@ -8,11 +8,11 @@ The brief gives the user's Request and its Sources. Read them, the branch diff, 
 
 Write the claim **in your own words**, as outcomes a user of the product can observe, each naming its exact surface. A source sentence about implementation becomes the behaviour it causes. One with no observable behaviour goes under Not proven as out of scope.
 
-Turn the claim into scenarios with stable ids (`S1`, `S2`, ...) and explicit expected outcomes. On round N, read the ledger first and pin the claim again from the current Sources: keep the ledger's ids, give new ids to anything the Sources added, re-prove the open ones, the new ones and the ones the new diff touches, and **carry** the rest. A carried scenario keeps its earlier status and the revision it was proven at.
+Turn the claim into scenarios with stable ids (`S1`, `S2`, ...) and explicit expected outcomes. On round N, read the ledger first and pin the claim again from the current Sources: keep the ledger's ids, give new ids to anything the Sources added, re-prove the open ones, the new ones and the ones the new diff touches, and **carry** the rest. A carried scenario keeps its earlier status and the revision it was proven at. An id whose part of the claim the current Sources withdrew gets a `WITHDRAWN` row and a line under Not proven.
 
 Classify each scenario:
 
-- **Fix**: red then green. The defect reproduces on the baseline revision, then the same steps succeed on the pinned revision.
+- **Fix**: red then green. The defect reproduces on the baseline revision, then the same steps succeed on the pinned revision. A security fix goes red and green the same way, through a harmless synthetic input that reaches the vulnerable path.
 - **Improvement**: a comparison. Capture the same measurement or interaction on the baseline and on the pinned revision, side by side. For a performance number, follow the `benchmark-checklist` skill.
 - **Feature**: the new behaviour on the pinned revision.
 
@@ -54,7 +54,7 @@ Completion: each scenario has a target rung, and its planned evidence rules out 
 
 ## 4. Execute and capture
 
-Exercise the real product with sanitized synthetic data, in character as its user. First split each scenario into its fixture and its surface under proof. The fixture is everything the claim takes as given; seed it the cheapest way that leaves the proof real (database inserts, stubs, a synthetic user or agent). The surface under proof is the behaviour the claim is about; produce it only through the path a real user would take. To prove agent compaction: seed the user and agent in the database, then start a thread from the product and send enough messages to trigger a compact. Every input typed into the product reads like a real user's, a plain question or task; ticket ids and proof labels stay in the proof document. Preserve user work and connected state. Verification is read-only with respect to source code: report a failing claim instead of implementing a fix.
+Exercise the real product with sanitized synthetic data, in character as its user. First split each scenario into its fixture and its surface under proof. The fixture is everything the claim takes as given; seed it the cheapest way that leaves the proof real (database inserts, stubs, a synthetic user or agent), starting from this proof's earlier `r<N>/` scripts or the `features/` recipes. The surface under proof is the behaviour the claim is about; produce it only through the path a real user would take. To prove agent compaction: seed the user and agent in the database, then start a thread from the product and send enough messages to trigger a compact. Every input typed into the product reads like a real user's, a plain question or task; ticket ids and proof labels stay in the proof document. Preserve user work and connected state. Verification is read-only with respect to source code: report a failing claim instead of implementing a fix.
 
 Show that the **changed path** ran: a log line, database row, tool call or response field that only the new code produces. An outcome that appears without it proves the old path.
 
@@ -82,7 +82,8 @@ Give each scenario one status:
 - **DEFECT**: the change misbehaves. Before recording it, run the same steps on the baseline; identical behaviour there makes it PRE-EXISTING. When the surface does not exist on the baseline, record `baseline: surface absent` instead. Give it a severity: `blocker` when the intended case is wrong, `should` when it is a real case users will hit inside the claim, `nit` for anything else.
 - **PRE-EXISTING**: wrong on the baseline too.
 - **INCONCLUSIVE**: it ran, and the evidence stops below the target rung or the difference is within run-to-run variation.
-- **UNREACHABLE**: it could not be run. Name the prerequisite and the route you attempted.
+- **UNREACHABLE**: it could not be run. Name the prerequisite and the route you attempted. A scenario you chose not to run is INCONCLUSIVE, with the reason.
+- **WITHDRAWN**: the Sources no longer claim it. It stays out of the tally.
 
 The verdict follows from the statuses:
 
@@ -112,7 +113,7 @@ Completion: the document has the verdict line, the carrying captures, the scenar
 
 Clean up as `lightdash.md` Cleanup describes: the pinned instance stays up for the reviewer, everything else this run started goes, and the Cleanup section lists what remains with the command that removes it.
 
-Run [`../scripts/check-proof`](../scripts/check-proof) `<proof-dir>` until it prints `ok`. Then look at every image and every frame in its `contact/` folder and confirm each shows what its scenario states, and that the Try it URL answers.
+Run [`../scripts/check-proof`](../scripts/check-proof) `<proof-dir>` unmodified until it prints `ok`; when it rejects something this procedure allows, return that as a skill gap. Then view every contact sheet it wrote to `contact/` and confirm each shows what its scenario states, and that the Try it URL answers.
 
 Return:
 

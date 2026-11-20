@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# Host PNG captures in a secret gist; print one commit-pinned Markdown embed per file.
+# Usage: pr-captures [--gist <id>] <pr-number> <round> <png>...
+set -euo pipefail
+gist=""
+if [[ "${1:-}" == "--gist" ]]; then gist="$2"; shift 2; fi
+pr="${1:?usage: pr-captures [--gist <id>] <pr-number> <round> <png>...}"
+round="${2:?round}"
+shift 2
+(($#)) || { echo "no images given" >&2; exit 2; }
+for f in "$@"; do [[ -f "$f" && "$f" == *.png ]] || { echo "not a png file: $f" >&2; exit 2; }; done
+
+work="$(mktemp -d)"
+trap 'rm -rf "$work"' EXIT
+if [[ -z "$gist" ]]; then
+  printf 'Proof captures for PR #%s.\n' "$pr" >"$work/README.md"
+  gist="$(gh gist create -d "PR #$pr proof captures" "$work/README.md" | tail -1)"
+  gist="${gist##*/}"
+fi
+g() { git -c credential.helper= -c credential.helper='!gh auth git-credential' "$@"; }
+g clone -q "https://gist.github.com/$gist.git" "$work/g"
+names=()
+for f in "$@"; do
+  name="pr${pr}-r${round}-$(basename "$f")"
+  cp "$f" "$work/g/$name"
+  names+=("$name")
+done
+git -C "$work/g" add -A
+git -C "$work/g" commit -qm "PR #$pr round $round captures"
+g -C "$work/g" push -q
+sha="$(git -C "$work/g" rev-parse HEAD)"
+owner="$(gh api user -q .login)"
+
+status=0
+echo "gist: $gist"
+for name in "${names[@]}"; do
+  url="https://gist.githubusercontent.com/$owner/$gist/raw/$sha/$name"
+  type="$(curl -sfL -o /dev/null -w '%{content_type}' "$url" || true)"
+  if [[ "$type" == image/* ]]; then
+    echo "![$name]($url)"
+  else
+    echo "not serving an image ($type): $url" >&2
+    status=1
+  fi
+done
+exit "$status"

@@ -11,7 +11,7 @@ A user downloads a project's charts and dashboards as YAML with the `lightdash` 
 - `cac-upload-create` a file for a slug the project lacks creates the item.
 - `cac-api-read` `GET .../code/charts|dashboards?ids=` returns the documents.
 - `cac-api-write` `POST .../code/charts|dashboards/{slug}` upserts one document and reports the action.
-- `cac-lint` `lightdash lint` validates local files without a server write.
+- `cac-lint` `lightdash lint` validates local content and dbt model files without a server write.
 
 ## How to get to it (user POV)
 
@@ -35,14 +35,14 @@ Preconditions:
 - **Forced upload.** Add `--force` (optionally `--charts <slug>` / `--dashboards <slug>`) to send files regardless of mtime. Use it for an immediate edit or a fresh target project.
 - **Round trip.** Download again into a new path with the same flags (`--skip-spaces`, filters) and `diff -r -x .lightdash-metadata.json` against the edited copy: no differences.
 - **API read.** `curl -H "Authorization: ApiKey $PAT" "$ENV_URL/api/v1/projects/$P/code/charts?ids=<chart-slug>"` returns `results.charts[0]` (same fields as the YAML, no uuid; resolve uuids by slug) and `results.missingIds` for unknown slugs; `code/dashboards?ids=<dashboard-slug>` likewise.
-- **API write.** POST the document read above, as JSON, to `$ENV_URL/api/v1/projects/$P/code/charts/<chart-slug>` (`-H 'Content-Type: application/json'`). 200 with `results.charts[0].action` one of `no changes`, `create`, `update`; `results.dashboards[]` and `results.spaces[]` report side effects. The unchanged check compares only `updatedAt`, `name`, `description` and `slug`: a body that changes only `chartConfig` or `metricQuery` returns `no changes` and writes nothing. Add `"force": true` to the body to apply it. `/code/composerCharts/{slug}` returns a flat `results.action`.
-- **Lint.** `node packages/cli/dist/index.js lint --path ./cac` exits 0 for valid files and non-zero naming the file and field for an invalid one.
+- **API write.** POST the document read above, as JSON, to `$ENV_URL/api/v1/projects/$P/code/charts/<chart-slug>` (`-H 'Content-Type: application/json'`). 200 with `results.charts[0].action` one of `no changes`, `create`, `update`; `results.dashboards[]` and `results.spaces[]` report side effects. The unchanged check compares only `updatedAt`, `name`, `description` and `slug`: a body that changes only `chartConfig` or `metricQuery` returns `no changes` and writes nothing. Add `"force": true` to the body to apply it. `/code/composerCharts/{slug}` returns a flat `results.action`, takes no `force`, and compares the whole document; `/code/charts/{slug}` refuses a composer document.
+- **Lint.** `node packages/cli/dist/index.js lint --path ./cac` exits 0 for valid files and 2 naming the file and field for an invalid one.
 - **Second side.** Pair every CLI claim with server state: `GET /api/v1/saved/$C/history`, `GET /api/v1/dashboards/$D/history`, the chart or dashboard page in the browser, or `guest: runuser -u postgres -- psql -d postgres -XAt -c "select count(*) from saved_queries_versions v join saved_queries q using (saved_query_id) where q.slug='<chart-slug>'"`.
 
 ## Gotchas
 
 - The upload skips a file whose mtime is within 30 s of its download time (kept in `<path>/.lightdash-metadata.json`): an immediate edit looks unchanged. Wait, `touch` the file later, or pass `--force`.
-- `--force` re-sends unchanged content; a forced chart upload can append a version with identical content (seen on composer charts). Measure no-op behaviour without `--force`.
+- `--force` re-sends unchanged content; a forced classic chart upload turns `no changes` into `update` and appends an identical version. Composer charts ignore it. Measure no-op behaviour without `--force`.
 - An identical dashboard upload reports `update` and appends a dashboard version, while its charts report `no changes`. Compare history counts, not the action label, before calling a no-op a regression.
 - The guest's `lightdash` is rebuilt only when `packages/cli/**` changes; a change in `packages/common` alone leaves it on the old schema. Build from the checkout when common changed.
 - The published npm CLI differs from the checkout build; name which one produced each transcript.

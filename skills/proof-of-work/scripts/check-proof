@@ -2,7 +2,8 @@
 """Audit a proof directory against the template; print problems, or `ok`.
 
 Usage: check-proof <proof-dir>
-Also extracts one mid-point frame per referenced video into <proof-dir>/contact/.
+Also writes one contact sheet per evidence section (its images plus a mid-point
+frame per video) into <proof-dir>/contact/, and on `ok` echoes the hand-off facts.
 """
 import csv
 import re
@@ -13,8 +14,10 @@ from pathlib import Path
 
 SECTIONS = ["Look here first", "Scenarios", "Evidence", "Regression", "Try it", "Not proven", "Provenance", "Cleanup"]
 HTML_TAGS = {"video", "details", "summary", "br", "img", "a", "sub", "sup", "source", "p", "div", "span", "kbd", "b", "i", "code", "pre", "table", "tr", "td", "th"}
-STATUSES = ["PRE-EXISTING", "PASS", "DEFECT", "INCONCLUSIVE", "UNREACHABLE"]
+STATUSES = ["PRE-EXISTING", "PASS", "DEFECT", "INCONCLUSIVE", "UNREACHABLE", "WITHDRAWN"]
+IMAGE_EXT = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
 VIDEO_EXT = {".mp4", ".webm", ".mov"}
+FONTS = ["/System/Library/Fonts/Supplemental/Arial.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"]
 
 
 def strip_code(text):
@@ -93,7 +96,7 @@ def main(root):
                 problems.append(f"{sid}: table says {table[sid]}, latest ledger row says {latest[sid]}")
 
     if verdict and table:
-        statuses = [s for s in table.values() if s]
+        statuses = [s for s in table.values() if s and s != "WITHDRAWN"]
         cells = dict(rows)
         blocking = any(s == "DEFECT" and re.search(r"blocker|should", cells[i], re.I) for i, s in table.items())
         if blocking:
@@ -107,21 +110,57 @@ def main(root):
         if verdict.group(1) != expected:
             problems.append(f"verdict {verdict.group(1)} does not follow from the table ({expected})")
 
-    videos = [root / r for r in local if Path(r).suffix.lower() in VIDEO_EXT and (root / r).exists()]
+    frames = {}
+    videos = [r for r in local if Path(r).suffix.lower() in VIDEO_EXT and (root / r).exists()]
+    contact = root / "contact"
     if videos:
         if not shutil.which("ffmpeg"):
             problems.append("ffmpeg not found; view one frame of each video by hand")
         else:
-            contact = root / "contact"
             contact.mkdir(exist_ok=True)
-            for v in videos:
-                out = contact / (v.stem + ".png")
+            for r in videos:
+                v, out = root / r, contact / (Path(r).stem + ".png")
                 dur = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(v)],
                                      capture_output=True, text=True).stdout.strip()
                 mid = str(float(dur) / 2) if dur else "0"
                 subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-ss", mid, "-i", str(v), "-frames:v", "1", str(out)])
-                print(f"frame: {out}")
+                frames[r] = out
+    if not problems:
+        write_sheets(root, prose, frames, contact)
+        print(handoff(text))
     return problems
+
+
+def write_sheets(root, prose, frames, contact):
+    sections = re.split(r"^##+ (.+?)\s*$", prose, flags=re.M)
+    for title, body in zip(sections[1::2], sections[2::2]):
+        refs = re.findall(r"\]\(([^)\s#]+)\)", body) + re.findall(r'\bsrc="([^"#]+)"', body)
+        files = []
+        for r in dict.fromkeys(refs):
+            if r in frames:
+                files.append(frames[r])
+            elif Path(r).suffix.lower() in IMAGE_EXT and (root / r).exists():
+                files.append(root / r)
+        if not files:
+            continue
+        if not shutil.which("montage"):
+            print(f"view by hand ({title}): " + " ".join(str(f) for f in files))
+            continue
+        contact.mkdir(exist_ok=True)
+        out = contact / ("sheet-" + re.sub(r"[^\w-]+", "-", title).strip("-").lower() + ".png")
+        font = next((["-font", f] for f in FONTS if Path(f).exists()), [])
+        subprocess.run(["montage", *font, "-label", "%f", *map(str, files), "-tile", "3x", "-geometry", "720x450>+8+8",
+                        "-pointsize", "16", "-background", "white", str(out)], check=False)
+        print(f"sheet: {out}")
+
+
+def handoff(text):
+    lines = [m.group(0) for m in re.finditer(r"^\*\*Verdict:.*$", text, re.M)][:1]
+    lines += [l for l in text.splitlines() if re.match(r"\| *[SR]\d+", l)]
+    gap = re.search(r"^## Not proven\s*\n(.*?)(?=^## )", text, re.M | re.S)
+    if gap:
+        lines += ["Not proven:", gap.group(1).strip()]
+    return "\n".join(lines)
 
 
 if __name__ == "__main__":
