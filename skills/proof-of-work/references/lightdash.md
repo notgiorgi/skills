@@ -10,6 +10,7 @@ Default to a **Rainbow env**, through `tools.rainbow.*` on the `executor` MCP. R
 - **Baseline**: `create_env({repo: "lightdash/lightdash", branch: "<baseline sha>", name: "<proof-dir-name>-base"})`. `branch` accepts a sha Rainbow has fetched; a just-merged sha answers `neither on origin nor a local ref`, so pass the branch name instead and check the served `sha` in Doctor.
 - Create both envs before pinning the claim and pin it while they build. A fork of a recent warm image is ready in under a minute; a revision with no warm image builds from scratch, 5 to 35 minutes, and a failed build ends `task_status` with the failing stage.
 - **Redeploy** after a push: `create_env` again with the same name; the URL stays.
+- **One build per commit at a time.** A push that changes `rainbow.toml` `[runtime].build` rebuilds the base image (~10 min). Two builds of the same new commit at once (the PR preview and your `create_env`) collide in `wt-image-<sha>`: one fails with `file has vanished`, the other with `git ls-files ... exit status 128`, and the PR's `rainbow-machine/preview` and `Deploy Preview` checks go red. Wait for the PR's build (`pr_status`) before `create_env` on that commit, and re-run once after a collision.
 - **Waiting**: `create_env`, and an `exec` running past ~25 s, answer `{status: "working", task_id}`. Then run [`../scripts/wait-healthy`](../scripts/wait-healthy) `<env-url> [timeout-seconds]` (the URL is `https://<name>.lightdash.rainbowmachine.dev`), or call `task_status({task_id, wait_sec: 25})` until it returns the call's result. `url` answers `no environment` until `create_env` completes; the URL above works for curl and the browser meanwhile. A PR preview waits with one `pr_status({repo: "lightdash/lightdash", pr, wait_sec})`; `build_log({repo: "lightdash/lightdash", pr})` explains a failure.
 
 ## Doctor
@@ -51,6 +52,14 @@ Feature recipes are in [`../features/`](../features/README.md). Shared facts:
 
 **Settings.** `set_env({env, set})` changes a server variable and restarts in ~20 s, but refuses any value equal to a stored secret's value, and `"true"` is one: a boolean setting cannot be turned on this way. Read `get_env` before and after.
 
+**Emulated model.** Use it when main and the change must receive the identical model answer. Every env built from main at or after `ed43a6cce5` runs the `emulate-ai` service ([emulate](https://github.com/vercel-labs/emulate) 0.14.0, `ai`) on guest `localhost:4014`, idle until the env opts in:
+
+- Opt in with `set_env({env, set: {AI_DEFAULT_PROVIDER: "openai", OPENAI_BASE_URL: "http://localhost:4014/v1"}})`, or `set` on `create_env`; `OPENAI_API_KEY` comes from the stored secret. Opt out with `unset` on both. Only the OpenAI provider works: emulate's Anthropic route rejects the `anthropic-version` header the SDK always sends.
+- The seed, `scripts/rainbow/emulate-ai.yaml`, answers every streamed agent turn (the UI, `/stream`) with the same ~1,180-word Markdown guide (49 blocks, 29 links, a SQL block, a table), one word per chunk 15 ms apart. Non-streamed calls (`/generate`, title generation) get emulate's default: an echo of the latest user text.
+- `guest: curl -s localhost:4014/_ai/calls` lists each model request: `format`, `stream`, `matched` rule, declared `tools`, `messages`. `DELETE` the same URL clears it.
+- Script other answers with `guest: curl -X PUT localhost:4014/_ai/rules -H 'content-type: application/json' -d '{"strict":false,"rules":[...]}'`. It replaces every rule and the timing, and `POST localhost:4014/_ai/reset` restores the seed: reset at cleanup. Match on `stream`, `format`, `tool` and `hasToolResult`, not `textContains`: it reads only the latest user message, and the app can append a skill or catalog context as a later one. A `tool_call` reply must name a tool in that request's `tools`.
+- A baseline env needs the same service and opt-in. An env from a sha before `ed43a6cce5` lacks both files; base it on a branch carrying main's `rainbow.toml` and seed.
+
 **Query storage.** When queries or app uploads fail with `KeyInactive` or `Authentication required`, the preview's results bucket credentials are stale. In the guest create a MinIO user and bucket (`mc admin user add`, `mc admin policy attach readwrite`), then `set_env` `RESULTS_S3_ENDPOINT=http://127.0.0.1:9000`, `RESULTS_S3_BUCKET`, `RESULTS_S3_ACCESS_KEY`, `RESULTS_S3_SECRET_KEY`, `RESULTS_S3_AUTH_MODE=default`, leaving out the region (`us-east-1` and `minioadmin` match stored secrets), and run `wait-healthy`. App and custom chart type installs use the managed `S3_*` keys, which `set_env` refuses: those scenarios are UNREACHABLE on the first failure.
 
 **Database.** `guest: runuser -u postgres -- psql -d postgres -XAt -c "select 1"`. `exec` runs as root with no `PG*` variables, the socket admits only the OS user `postgres`, and the app database is named `postgres`.
@@ -71,7 +80,7 @@ Feature recipes are in [`../features/`](../features/README.md). Shared facts:
 
 - Keep the pinned env running for the reviewer unless the user said to remove it; then Try it gives the `create_env` call and `r<N>/setup` command instead of a URL. A `lightdash--pr-<N>` env belongs to its pull request.
 - Touch only envs this run created. `kill_env({env: "<name>"})` every one of them except the pinned env, the baseline always, then read `list_envs` and paste the names that remain into the proof's Cleanup section.
-- Restore what the run changed on the pinned env: flag overrides, agent settings and minted PATs.
+- Restore what the run changed on the pinned env: flag overrides, agent settings, minted PATs, and emulated-model rules (`POST localhost:4014/_ai/reset`).
 - Fixtures are code: `r<N>/setup.*` creates the Try it records against an env URL and `r<N>/cleanup.*` removes them. Leave the Try it records up unless the brief says to remove them; Try it then says to run setup.
 - Evidence files stay.
 
