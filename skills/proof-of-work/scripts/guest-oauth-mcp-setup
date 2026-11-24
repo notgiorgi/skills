@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+# Guest only: OAuth MCP fixture from the backend's MCP SDK example on 127.0.0.1:4121 (MCP) and :4122 (issuer); allows private MCP URLs.
+set -euo pipefail
+dir=/tmp/pow-mcp
+mkdir -p "$dir"
+sdk=$(readlink -f /usr/app/packages/backend/node_modules/@modelcontextprotocol/sdk)
+cp -R "$sdk/dist/esm" "$dir/"
+cp "$sdk/package.json" "$dir/"
+ln -s "$(dirname "$(dirname "$sdk")")" "$dir/node_modules"
+cd "$dir"
+python3 - <<'PY'
+from pathlib import Path
+p=Path('esm/examples/server/demoInMemoryOAuthProvider.js')
+s=p.read_text()
+def replace(old,new):
+    global s
+    assert s.count(old)==1, old
+    s=s.replace(old,new)
+replace('this.tokens = new Map();', 'this.tokens = new Map();\n        this.refreshTokens = new Map();')
+replace('        // Simulate a user login','        console.log(JSON.stringify({at:Date.now(), event:"authorize"}));\n        // Simulate a user login')
+replace('        return {\n            access_token: token,', '''        const refresh = randomUUID();
+        this.refreshTokens.set(refresh, tokenData);
+        console.log(JSON.stringify({at:Date.now(), event:"grant", kind:"authorization_code"}));
+        return {
+            refresh_token: refresh,
+            access_token: token,''')
+replace("        throw new Error('Not implemented for example demo');", '''        const grant = this.refreshTokens.get(_refreshToken);
+        const valid = grant?.clientId === _client.client_id;
+        console.log(JSON.stringify({at:Date.now(), event:"grant", kind:"refresh_token", valid}));
+        if (!valid) throw new InvalidGrantError("The synthetic grant was revoked");
+        this.refreshTokens.delete(_refreshToken);
+        const token = randomUUID();
+        const refresh = randomUUID();
+        const updated = {...grant, token, expiresAt: Date.now() + 3600000};
+        this.tokens.set(token, updated);
+        this.refreshTokens.set(refresh, updated);
+        return {access_token:token, refresh_token:refresh, token_type:"bearer", expires_in:3600, scope:grant.scopes.join(" ")};''')
+replace('import { InvalidRequestError }', 'import { InvalidGrantError, InvalidRequestError }')
+replace("    authApp.post('/introspect',", '''    authApp.post('/_fixture/:action', (req,res) => {
+        const action = req.params.action;
+        if (!["expire","revoke"].includes(action)) return res.sendStatus(400);
+        for (const [token, grant] of provider.tokens) {
+            provider.tokens.set(token, {...grant, expiresAt: 1});
+        }
+        if (action === "revoke") provider.refreshTokens.clear();
+        console.log(JSON.stringify({at:Date.now(), event:"control", action}));
+        return res.sendStatus(204);
+    });
+    authApp.post('/introspect',''')
+replace('    authApp.listen(auth_port, error =>', "    authApp.listen(auth_port, '127.0.0.1', error =>")
+p.write_text(s)
+p=Path('esm/examples/server/simpleStreamableHttp.js')
+s=p.read_text()
+replace('const app = createMcpExpressApp();','''const app = createMcpExpressApp();
+app.use(async (req, res, next) => {
+    const at = Date.now();
+    const method = req.body?.method;
+    res.on("finish", () => console.log(JSON.stringify({
+        at, end: Date.now(), event:"mcp", path:req.path, http:req.method,
+        method, status:res.statusCode, session:req.headers["mcp-session-id"] ?? null
+    })));
+    if (req.path === "/mcp" && req.method === "POST") {
+        await new Promise(resolve => setTimeout(resolve, 325));
+    }
+    next();
+});''')
+replace("console.log('Authenticated user:', req.auth);","console.log('Synthetic OAuth grant accepted');")
+s=s.replace('app.listen(MCP_PORT, error =>',"app.listen(MCP_PORT, '127.0.0.1', error =>")
+replace("import { requireBearerAuth }", "import { InvalidTokenError } from '../../server/auth/errors.js';\nimport { requireBearerAuth }")
+replace("throw new Error(`Invalid or expired token: ${text}`);", 'throw new InvalidTokenError("The synthetic access token expired or was revoked");')
+p.write_text(s)
+PY
+MCP_PORT=4121 MCP_AUTH_PORT=4122 systemd-run --unit=pow-mcp --working-directory="$dir" --setenv=MCP_PORT=4121 --setenv=MCP_AUTH_PORT=4122 "$(command -v node)" "$dir/esm/examples/server/simpleStreamableHttp.js" --oauth
+install -d /etc/systemd/system/rainbow-dev.service.d
+printf '[Service]\nEnvironment=AI_AGENT_MCP_ALLOW_PRIVATE_ADDRESSES=true\n' > /etc/systemd/system/rainbow-dev.service.d/pow-mcp.conf
+systemctl daemon-reload
+systemctl restart rainbow-dev.service

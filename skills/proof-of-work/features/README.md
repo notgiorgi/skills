@@ -15,7 +15,8 @@ The maintained recipes for driving Lightdash features the way a user does. Read 
 - [Dashboards and saved charts](dashboards-and-charts.md): open, edit, filter, parameters, date zoom, history, duplicate, promote, delete, roles, minimal page, embed.
 - [Composer charts](composer-charts.md): pipeline charts as dashboard tiles, run, export, versions and rollback, promotion, agent edits.
 - [Content as code](content-as-code.md): CLI download and upload, and the `/code/...` API.
-- [MCP server](mcp.md): auth, listing tools, the composer `query` tool, node reuse.
+- [MCP server](mcp.md): Lightdash's own server, called by a client: auth, listing tools, the composer `query` tool, node reuse, project access.
+- [External MCP servers on an agent](external-mcp.md): add a server, OAuth sign-in, attach to an agent, tool turns, token refresh and revocation, with a guest fixture.
 - [Slack agent](slack.md): local instance only, through a tunnel.
 
 ## Entry contract
