@@ -35,7 +35,7 @@ Preconditions:
 - **Reuse a node.** Call `query` again with `"sessionId":"<sessionId>"` and only the new node `{"sourceType":"duckdb","nodeId":"total","title":"Total","description":"Sum of numbers","sql":"SELECT sum(value) AS total FROM numbers","references":["numbers"],"limit":10}`. It returns `total` = 820 without resubmitting `numbers`.
 - **Read rows.** `tools/call` `get_query_result` with `{"queryUuid":"<nodes[].queryUuid>"}`. Returns the node's rows.
 - **Tool error.** A bad call returns HTTP 200 with `result.isError: true` and the reason in `result.content[0].text`; protocol errors use JSON-RPC `error`.
-- **Second side.** `guest: runuser -u postgres -- psql -d postgres -XAt -c "select tool_name, status, error_message, duration_ms, client_name from mcp_tool_call where project_uuid='$P' order by created_at desc limit 5"`. One row per call, `tools/list` included, `direction` = `inbound`.
+- **Second side.** `guest: runuser -u postgres -- psql -d postgres -XAt -c "select tool_name, status, error_message, duration_ms, client_name from mcp_tool_call where project_uuid='$P' order by created_at desc limit 5"`. One row per call, `tools/list` included, `direction` = `inbound`. `client_name` stays null unless an `initialize` with the same User-Agent came first.
 
 ## Gotchas
 
@@ -44,5 +44,5 @@ Preconditions:
 - `query` waits up to 50 s, then answers `status: "running"` with a `queryUuid`; poll `get_query_result` with it.
 - A `query` call returns at most 5 unread nodes; more fail with a message asking to combine them.
 - Tool descriptions cached by an MCP client or proxy can predate the deploy, and the committed `mcp-tools-1.0.json` snapshot omits runtime inputs such as `query`'s `sessionId`. Read the live `tools/list` before claiming a schema or description change.
-- An org whose MCP project access is `selected` refuses other projects with `MCP_PROJECT_NOT_ALLOWED`.
+- MCP project access is set with `PATCH $ENV_URL/api/v1/aiAgents/admin/settings` and `{"mcpProjectAccess":{"mode":"selected","projectUuids":["<uuid>"]}}` (an unknown uuid is 400 `Invalid MCP project selection`); restore `{"mode":"all"}`. A project left out gets HTTP 403 `{"error":"MCP access to this project is disabled for your organization"}` on its pinned endpoint, and on the org-wide endpoint HTTP 200 with `result.isError: true` and `structuredContent.refusal.reason: "mcp_project_not_allowed"`.
 - A `Bearer ldpat_...` header works too; the server rewrites it to `ApiKey`.

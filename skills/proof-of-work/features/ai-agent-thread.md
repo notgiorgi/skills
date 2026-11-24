@@ -18,7 +18,7 @@ A user picks an AI agent in a project, asks a data question in a thread, and wat
 
 ## How to get to it (user POV)
 
-- Top bar button `Ask AI`, or `$ENV_URL/projects/$P/ai-agents`, which redirects to the user's default agent, else the only one, at `.../ai-agents/$AGENT/threads`; with several agents and no default it can show an agent picker instead. Switch or create agents from the header's agent selector (the agent's name; it lists `Create new agent`).
+- Top bar button `Ask AI`, or `$ENV_URL/projects/$P/ai-agents`, which redirects to the user's default agent, else the first one `GET .../aiAgents` lists, at `.../ai-agents/$AGENT/threads`. Switch or create agents from the header's agent selector (the agent's name; it lists `Create new agent`).
 - New thread page `$ENV_URL/projects/$P/ai-agents/$AGENT/threads`; an open thread lives at `.../threads/$THREAD`.
 - API, as an integration would: `/api/v1/projects/$P/aiAgents/...`.
 
@@ -58,6 +58,6 @@ Preconditions:
 - The viewer persona sees no agents, and gets 403 on an admin-created one, so a role check stops at agent access before it reaches the claim. Grant access first: `curl -X PATCH "${H[@]}" "$ENV_URL/api/v1/projects/$P/aiAgents/$AGENT" -d '{"uuid":"'$AGENT'","userAccess":["<persona userUuid>"]}'`, the uuid from that persona's `GET /api/v1/user`.
 - At a 390px viewport the Ask AI launcher is hidden on dashboards; this is existing behaviour, not a finding.
 - With the emulated model, `/generate` is not streamed and settles on an echo of the prompt, not the seeded guide; use `/stream` or the UI.
-- With the emulated model, a scripted `runSql` call cannot be made: the Jaffle Shop Agent and a fresh agent declare `query`, `visualize`, `loadAgentTools` and 28 others but not `runSql`, before and after `loadAgentTools`. SQL approval therefore needs a real provider key.
+- With the emulated model, a scripted `runSql` call cannot be made: the Jaffle Shop Agent and a fresh agent declare `query`, `visualize`, `loadAgentTools` and others but not `runSql`, before and after `loadAgentTools`. SQL approval therefore needs a real provider key.
 - `loadAgentTools` does not appear in the thread's `toolCalls[]`; read it from `_ai/calls`.
 - Restore what you changed: the `ai-copilot` override, agent settings, agents you created, emulated-model rules.

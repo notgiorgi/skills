@@ -50,7 +50,7 @@ Feature recipes are in [`../features/`](../features/README.md). Shared facts:
 
 **Feature flags.** `GET $ENV_URL/api/v2/feature-flag` lists resolved values, and is the source of truth for preview defaults; `POST .../feature-flag/<id>` with `{"enabled": true}` sets an org override; `DELETE` on the same URL drops it. Only an org admin can call these. Set an override only when the claim is about a flag's state, and drop it at cleanup.
 
-**Settings.** `set_env({env, set})` changes a server variable and restarts in ~20 s, but refuses any value equal to a stored secret's value, and `"true"` is one: a boolean setting cannot be turned on this way. Read `get_env` before and after.
+**Settings.** `set_env({env, set})` changes a server variable and restarts in ~20 s, but refuses any value equal to a stored secret's value, and `"true"` is one: a boolean setting cannot be turned on this way. Read `get_env` before and after. Turn a boolean on with a systemd drop-in instead: `guest: install -d /etc/systemd/system/rainbow-dev.service.d && printf '[Service]\nEnvironment=<NAME>=true\n' > /etc/systemd/system/rainbow-dev.service.d/proof.conf && systemctl daemon-reload && systemctl restart rainbow-dev.service`, then `wait-healthy`; delete the file and restart the same way at cleanup.
 
 **Emulated model.** Use it when main and the change must receive the identical model answer. Every env built from main at or after `ed43a6cce5` runs the `emulate-ai` service ([emulate](https://github.com/vercel-labs/emulate) 0.14.0, `ai`) on guest `localhost:4014`, idle until the env opts in:
 
@@ -97,8 +97,7 @@ Each of these makes a scenario UNREACHABLE with the prerequisite shown:
 - **Other warehouses**: only the seeded Postgres exists. Needs user-supplied credentials, for example a BigQuery service-account key, to create a project.
 - **Image and PDF deliveries, unfurls**: no headless browser service. CSV and XLSX deliveries work and land in the guest's mail catcher.
 - **Slack**: a preview cannot receive Slack events. Needs a local instance; see [`../features/slack.md`](../features/slack.md).
-- **Boolean settings such as `SOFT_DELETE_ENABLED`**: `set_env` refuses `"true"` (see Settings). Needs the variable in `rainbow.toml` on the branch and a redeploy.
-- **Git write-back and GitHub App access**: the project has no git repo (`hasGithub: false`). Needs a real dbt git connection.
+- **Git write-back and GitHub App access**: the project has no git repo (`hasGithub: false`), and previews set no `GITHUB_APP_ID` or `GITHUB_PRIVATE_KEY`, so the agent's GitHub MCP preset reads `available: false`. Needs a real dbt git connection, or a GitHub App key and installation.
 - **Outbound calls**: only `[[egress.allow]]` hosts connect; `egress` lists refused hosts. Needs the host added to `rainbow.toml` on the branch.
 - **Browser notifications**: the automation browser denies the permission. Needs a context that grants it.
 

@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Guest only: sign the seed admin in to MCP server <uuid> on the fixture; needs LD_SEED_PAT.
+set -euo pipefail
+server=$1
+base=http://localhost:8080
+path="/api/v1/projects/3675b69e-8324-4110-bdca-059031aa8da3/aiAgents/mcpServers/$server"
+authorization=$(curl -fsS -H "Authorization: ApiKey ${LD_SEED_PAT:?}" -H 'Content-Type: application/json' -d '{"credentialScope":"user"}' "$base$path/oauth/start" | python3 -c 'import json,sys; print(json.load(sys.stdin)["results"]["authorizationUrl"])')
+callback=$(curl -fsS -o /dev/null -w '%{redirect_url}' "$authorization")
+routed=$(python3 -c 'import sys, urllib.parse as u; p=u.urlsplit(sys.argv[1]); assert p.path=="/api/v1/aiAgents/mcp/oauth/callback"; print(sys.argv[2]+p.path+"?"+p.query)' "$callback" "$base")
+final=$(curl -fsS -o /dev/null -w '%{redirect_url}' "$routed")
+python3 -c 'import sys,urllib.parse as u; path=u.urlsplit(sys.argv[1]).path; print("Callback -> "+path); assert path=="/auth/popup/success"' "$final"
