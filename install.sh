@@ -101,4 +101,5 @@ add cursor/plugins \
   --skill blast-radius \
   --skill bro \
   --skill ketchup \
-  --skill maintain-verification-skill
+  --skill maintain-verification-skill \
+  --skill unslop
