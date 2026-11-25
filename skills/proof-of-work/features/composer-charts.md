@@ -46,5 +46,5 @@ Preconditions:
 - Payloads are strict: unknown keys are refused, `nodeId` matches `^[a-zA-Z_][a-zA-Z0-9_]{0,62}$`, the terminal node must read every node, and `columns[].reference` takes the node's output column names (no dots). A mismatch is 400.
 - Body validation errors are 422: the as-code `dashboardSlug` is a required string, not `null`. Classic SQL charts (`/sqlRunner/saved`) take a different shape with `config.metadata.version`; keep the two apart.
 - Run is bound to its tile: a `tileUuid` not showing `$C` on `$D` returns 403 `This composer chart is not on that dashboard tile`.
-- `compose-sql-runner` gates ad-hoc compose and AI composer answers, not saved tiles, whose nodes run with it off.
+- A saved tile with a SQL node can still run when `compose-sql-runner` is off. Python nodes in saved tiles still need that flag and a configured Python sandbox. Check `GET /api/v2/projects/$P/query-sources` for the sources available to the caller.
 - Embeds always render the not-available tile.

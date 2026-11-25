@@ -70,7 +70,7 @@ Feature recipes are in [`../features/`](../features/README.md). Shared facts:
 
 ## Evidence
 
-- **Captures**: drive the browser with `agent-browser --session <slug>` from the first step, even where the harness offers its own preview browser: hovers fail there and it records no pointer video. A 1440x1000 viewport for desktop proof, a claim-specific one for responsive behaviour. Text snapshot by default, screenshot for anything visual, `agent-browser record start <file> --cursor` for video. Capture after the page settles: a tile still loading is not evidence. Hover-only controls need a real pointer move before the click. Run `agent-browser --help` before first use.
+- **Captures**: Use the T3 preview browser when running in T3 Code. For pointer-visible video, drive the whole scenario with `agent-browser --session <slug>`. Outside T3, use `agent-browser` from the first step. A 1440x1000 viewport for desktop proof, a claim-specific one for responsive behaviour. Text snapshot by default, screenshot for anything visual, `agent-browser record start <file> --cursor` for video. Capture after the page settles: a tile still loading is not evidence. Hover-only controls need a real pointer move before the click. Run `agent-browser --help` before first use.
 - **Second side**: database rows, API reads, the app log (`logs` with service `dev`, or `guest: grep ... /var/log/rainbow/dev.log`; journalctl holds only service starts), and mail the app sent (`guest: curl -s localhost:8025/api/v1/messages`).
 - **Downloaded files**: render a PDF with `sips -s format png <file> --out <png>`; open an SVG in the browser.
 - **Traces**: previews export none; use the second-side sources above.
