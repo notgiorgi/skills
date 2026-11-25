@@ -10,7 +10,7 @@ A Slack user mentions the Lightdash bot in a channel mapped to an AI agent. The 
 - `slack-chart` posts charts as native `data_visualization` (flag `ai-agent-slack-native-charts`) or PNG cards.
 - `slack-follow-up` continues the thread from a Slack reply.
 - `slack-service-account` runs a mapped channel's mentions as a chosen service account instead of each person or the installer.
-- `slack-harness` renders or posts a chart from rows without the agent (dev only).
+- `slack-harness` renders a chart from rows without the agent and can post it to Slack in development mode.
 
 ## How to get to it (user POV)
 

@@ -6,6 +6,7 @@ A user picks an AI agent in a project, asks a data question in a thread, and wat
 
 - `agent-pick` lists the project's agents, or creates one.
 - `thread-start` starts a thread from a first prompt.
+- `thread-metadata` attaches caller metadata to an API-created thread and surfaces it in admin thread review.
 - `turn-wait` runs a turn to completion.
 - `tool-calls` shows the turn's tool calls and results.
 - `artifact` renders the chart or table the turn produced.
@@ -20,6 +21,7 @@ A user picks an AI agent in a project, asks a data question in a thread, and wat
 
 - Top bar button `Ask AI`, or `$ENV_URL/projects/$P/ai-agents`, which redirects to the user's default agent, else the first one `GET .../aiAgents` lists, at `.../ai-agents/$AGENT/threads`. Switch or create agents from the header's agent selector (the agent's name; it lists `Create new agent`).
 - New thread page `$ENV_URL/projects/$P/ai-agents/$AGENT/threads`; an open thread lives at `.../threads/$THREAD`.
+- Org admin review opens under Settings → Ask AI → Threads (`/generalSettings/ai/threads?projects=$P&agents=$AGENT`).
 - API, as an integration would: `/api/v1/projects/$P/aiAgents/...`.
 
 ## Driving it
@@ -35,6 +37,7 @@ Preconditions:
 - **Create an agent.** `curl -X POST "${H[@]}" "$ENV_URL/api/v1/projects/$P/aiAgents" -d '{"projectUuid":"'$P'","name":"Proof analyst","description":"","instruction":"","imageUrl":null,"integrations":[],"tags":[],"groupAccess":[],"userAccess":[],"spaceAccess":[],"enableDataAccess":true,"enableSelfImprovement":false,"enableSqlMode":true,"enableSqlAutoApproval":true,"enableComposerQueries":true,"enableContentTools":true,"version":2}'`. `results.uuid` is `$AGENT`.
 - **Start a thread (UI).** Open the new thread page, type into the textbox (`[role=textbox]`, a contenteditable div) with placeholder `Ask <agent name> anything about your data...`, click button `Send message`. The URL gains `/threads/<uuid>` and the prompt bubble appears.
 - **Start a thread (API).** `curl -X POST "${H[@]}" "$ENV_URL/api/v1/projects/$P/aiAgents/$AGENT/threads" -d '{"prompt":"Show revenue by order status as a bar chart"}'`. `results.uuid` is `$THREAD`; the thread holds a `pending` assistant message and nothing runs yet.
+- **Caller metadata.** Add `"metadata":{"environment":"staging"}` to the thread create body. Thread GET returns `results.metadata`. Filter the admin API with `GET /api/v1/aiAgents/admin/threads?metadataKey=environment&metadataValue=staging`. In the admin Threads table, open the row with a field count in the Metadata column to see the caller-supplied pairs.
 - **Run the turn (API).** `curl -X POST --max-time 600 "${H[@]}" "$ENV_URL/api/v1/projects/$P/aiAgents/$AGENT/threads/$THREAD/generate"`. It returns only when the turn ends, with `results.response` as the answer text.
 - **Wait for the turn.** `curl -H "Authorization: ApiKey $PAT" "$ENV_URL/api/v1/projects/$P/aiAgents/$AGENT/threads/$THREAD"`. Done when the last `results.messages[]` with `role: "assistant"` has `status: "idle"` and a non-null `message`; `status: "error"` may carry `errorMessage`; a message still `pending` after 5 minutes reads `error` with none. In the UI the answer shows `copy`, `upvote` and `downvote` buttons.
 - **Read tool calls (API).** The same message carries `toolCalls[]` (`toolCallId`, `toolName`, `toolArgs`), `toolResults[]` and `artifacts[]` (`artifactUuid`, `versionUuid`, `title`).
@@ -58,6 +61,6 @@ Preconditions:
 - The viewer persona sees no agents, and gets 403 on an admin-created one, so a role check stops at agent access before it reaches the claim. Grant access first: `curl -X PATCH "${H[@]}" "$ENV_URL/api/v1/projects/$P/aiAgents/$AGENT" -d '{"uuid":"'$AGENT'","userAccess":["<persona userUuid>"]}'`, the uuid from that persona's `GET /api/v1/user`.
 - At a 390px viewport the Ask AI launcher is hidden on dashboards; this is existing behaviour, not a finding.
 - With the emulated model, `/generate` is not streamed and settles on an echo of the prompt, not the seeded guide; use `/stream` or the UI.
-- With the emulated model, a scripted `runSql` call cannot be made: the Jaffle Shop Agent and a fresh agent declare `query`, `visualize`, `loadAgentTools` and others but not `runSql`, before and after `loadAgentTools`. SQL approval therefore needs a real provider key.
+- To test SQL approval with the emulated model, disable SQL auto-approval and script the Composer agent’s `query` tool in a streamed turn. Use arguments `{"title":null,"description":null,"terminalNodeId":null,"queries":[{"sourceType":"sql","nodeId":"sample","title":"Sample","description":"Returns one number","sql":"select 42 as answer","limit":10}]}`. Match `tool: "query"` and approve or reject the resulting tool call as above.
 - `loadAgentTools` does not appear in the thread's `toolCalls[]`; read it from `_ai/calls`.
 - Restore what you changed: the `ai-copilot` override, agent settings, agents you created, emulated-model rules.
