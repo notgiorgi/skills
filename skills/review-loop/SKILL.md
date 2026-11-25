@@ -1,6 +1,6 @@
 ---
 name: review-loop
-description: Review a change before it ships by sequencing code-review and sol-loop, plus a risk round and a PR claims check.
+description: Review a change before it ships by sequencing code-review and sol-loop, plus risk, copy, and PR claims checks.
 disable-model-invocation: true
 ---
 
@@ -29,7 +29,15 @@ Run `$code-review` against the base. Tests are code: read every new or changed t
 
 Done: every Standards finding fixed or declined with the rule cited.
 
-## 3. Intent
+## 3. Copy
+
+Copy is user-facing text the diff adds: UI strings, error messages users see, and product docs. List each copy string the base diff adds or changes, with its file:line. No copy: skip to step 4.
+
+Spawn one sub-agent in the foreground on Gemini Neon if available, otherwise the default sub-agent. Brief it to run `$unslop` on the list and return rewrites only. Apply each rewrite that keeps the meaning and fits the surrounding tone.
+
+Done: every listed string checked against unslop's rules; each rewrite applied or declined.
+
+## 4. Intent
 
 Run `$sol-loop`. Add this line to its round 1 brief so Sol judges against the standards too:
 
@@ -39,7 +47,7 @@ Standards: <standards files>. Read them; a breach is a should.
 
 Done: sol-loop's stop condition.
 
-## 4. Risk (hot path only)
+## 5. Risk (hot path only)
 
 Intent approval does not cover blast radius; run this even after APPROVE. One fresh Sol review through sol-loop's route, same base diff, with the Intent line replaced by:
 
@@ -54,10 +62,10 @@ Answer findings per sol-loop step 3. One re-check round if fixes changed behavio
 
 Done: every question answered with evidence; no blocker or should open.
 
-## 5. PR claims
+## 6. PR claims
 
-If steps 3-4 changed code, rerun step 2 on the final diff first. Then, before writing or pushing the PR body, list each behaviour claim in it (what it does, fixes, leaves unchanged). Each cites a proof artifact (`$proof-of-work` output, screenshot, trace) or a test that shows it. Rewrite a claim the proof contradicts to what the proof shows; delete a claim nothing covers.
+If steps 3-5 changed code, rerun step 2 on the final diff first. Then, before writing or pushing the PR body, list each behaviour claim in it (what it does, fixes, leaves unchanged). Each cites a proof artifact (`$proof-of-work` output, screenshot, trace) or a test that shows it. Rewrite a claim the proof contradicts to what the proof shows; delete a claim nothing covers.
 
 Done: every behaviour claim in the PR body cites its proof.
 
-Report: findings per step, whether risk ran and why, claims cut or rewritten.
+Report: findings per step, whether risk ran and why, which model unslopped copy, claims cut or rewritten.
