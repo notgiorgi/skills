@@ -103,3 +103,6 @@ add cursor/plugins \
   --skill ketchup \
   --skill maintain-verification-skill \
   --skill unslop
+
+add vercel-labs/agent-skills \
+  --skill vercel-react-best-practices
