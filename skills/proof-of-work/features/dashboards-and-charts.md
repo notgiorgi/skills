@@ -22,8 +22,8 @@ A user opens a dashboard of chart, markdown and other tiles, narrows it with das
 
 ## How to get to it (user POV)
 
-- Sidebar `Browse` > `All dashboards` (nav anchor `[data-tour-nav="all-dashboards"]`), or `/projects/$P/dashboards`.
-- Dashboard URL `/projects/$P/dashboards/$D/view`; edit mode `/edit`; a tab `/view/tabs/$TAB`. In-app navigation rewrites both ids to slugs (`/projects/jaffle-shop/dashboards/<slug>/edit`), so assert on the suffix.
+- Top bar `Browse` > `All dashboards` (nav anchor `[data-tour-nav="all-dashboards"]`), or `/projects/$P/dashboards`.
+- Dashboard URL `/projects/$P/dashboards/$D/view`; edit mode `/edit`; a tab `/view/tabs/$TAB`. In-app navigation rewrites the project id to its slug and keeps the dashboard id it was opened with (`/projects/jaffle-shop/dashboards/$D/edit`), so assert on the suffix.
 - Version history `/projects/$P/dashboards/$D/history` and `/projects/$P/saved/$C/history`.
 - `New` > `Dashboard` (`[data-tour-nav="new"]` then `[data-tour-nav="new-dashboard"]`).
 - Saved chart `/projects/$P/saved/$C/view`; list `/projects/$P/saved`.
@@ -37,9 +37,9 @@ Preconditions:
 - `D` from `curl -H "Authorization: ApiKey $PAT" "$ENV_URL/api/v1/projects/$P/dashboards"`: pick `Jaffle dashboard` (slug `jaffle-dashboard`, two dashboard filters: `orders_is_completed` and `orders_order_date_year`).
 - Mutations use a proof-owned dashboard: `curl -X POST -H "Authorization: ApiKey $PAT" -H 'Content-Type: application/json' -d '{"name":"Proof dashboard","tiles":[],"tabs":[]}' "$ENV_URL/api/v1/projects/$P/dashboards"` returns 201 and `results.uuid`.
 
-- **Open.** Navigate to `/projects/$P/dashboards/$D/view`. Every tile leaves its loading state; snapshot shows the tile titles and the filter pills. API: `curl -H "Authorization: ApiKey $PAT" "$ENV_URL/api/v1/dashboards/$D"` returns `results.tiles`, `tabs`, `filters`, `parameters`.
+- **Open.** Navigate to `/projects/$P/dashboards/$D/view`. Every tile leaves its loading state; snapshot shows the tile titles and the filter pills. API: `curl -H "Authorization: ApiKey $PAT" "$ENV_URL/api/v1/dashboards/$D"` returns `results.tiles`, `tabs`, `filters`, `config`.
 - **Enter edit.** First visit opens a 6-step `Welcome to the new dashboard editor` tour over the toolbar: click `Skip tour`, or pre-dismiss it per persona with `POST /api/v1/user/onboarding` `{"tour":"dashboardEditTour"}` in that persona's session. Click button `Edit dashboard` (aria-label). URL ends `/edit`; the header shows `Save changes` (disabled until a change) and `Cancel`, and the floating toolbar `[aria-label="Dashboard editing tools"]` holds `Add tile`.
-- **Add a tile.** Click `[data-tour-anchor="add-tile"]` (`Add tile`), menu item `Saved chart` (`[data-tour-anchor="add-saved-chart"]`), type a chart name into `[data-tour-anchor="chart-picker"]` (placeholder `Search...`), pick `[data-tour-anchor="chart-option"][data-tour-value="<chart name>"]`, click `Add` (`[data-tour-anchor="add-charts-submit"]`). A new tile appears; `Save changes` enables.
+- **Add a tile.** Click `[aria-label="Dashboard editing tools"] [data-tour-anchor="add-tile"]` (`Add tile`; an empty dashboard has a second `add-tile` in its empty state), menu item `Saved chart` (`[data-tour-anchor="add-saved-chart"]`), type a chart name into the input inside `[data-tour-anchor="chart-picker"]`, pick `[data-tour-anchor="chart-option"][data-tour-value="<chart name>"]`, click the modal title to close the still-open list (Escape closes the whole modal), then click `Add` (`[data-tour-anchor="add-charts-submit"]`). A new tile appears; `Save changes` enables.
 - **Add a heading.** Choose `Add tile` → `Heading`. Type into the focused `Heading text` field, press Enter, and save. The heading renders in view mode and the dashboard GET shows it in `tiles[].properties.text`.
 - **Save.** Click `Save changes`. URL returns to `/view`; `GET /api/v1/dashboards/$D` shows one more tile and `GET /api/v1/dashboards/$D/history` one more version.
 - **Add a tile by API.** `PATCH /api/v1/dashboards/$D` with body `{"tiles":[...all current tiles..., {"type":"saved_chart","x":0,"y":0,"w":12,"h":9,"properties":{"savedChartUuid":"$C","title":"Proof tile"}}],"tabs":<current>,"filters":<current>}` returns 200. The body replaces the tile list.
@@ -53,7 +53,7 @@ Preconditions:
 - **Delete.** Click `Dashboard actions` > `Delete`, confirm `Delete` in the `Delete dashboard` dialog. API: `DELETE /api/v1/dashboards/$D` returns 200; a later `GET` returns 404; charts the dashboard owned are gone too.
 - **Saved chart.** Open `/projects/$P/saved/$C/view`; the chart renders with its name as heading. API: `GET /api/v1/saved/$C` (definition), `GET /api/v1/saved/$C/history` (versions), `POST /api/v2/projects/$P/query/chart` with `{"chartUuid":"$C","context":"chartView"}` then poll as above.
 - **As a viewer.** In the page run `fetch('/api/v1/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:'demo3@lightdash.com',password:'demo_password!'})})`, reload. `Edit dashboard` is absent. Create a private space as admin (`POST /api/v1/projects/$P/spaces` with `{"name":"Private proof","inheritParentPermissions":false}`), then a dashboard with that `spaceUuid` in the create body: the viewer gets 403 on it and its charts; `another@lightdash.com` (other org) gets 403 on every seed dashboard.
-- **Minimal page.** Navigate to `/minimal/projects/$P/dashboards/$D`. Wait for `#lightdash-ready-indicator` to be attached (it is `hidden`, and mounts once every tile settles): `data-status` is `ready` or `completed-with-errors`, and `data-tiles-total`, `data-tiles-ready`, `data-tiles-errored` are counts.
+- **Minimal page.** Navigate to `/minimal/projects/$P/dashboards/$D`. Wait for `#lightdash-ready-indicator` to be attached (it is `hidden`, and mounts once every tile settles): `data-status` is `ready`, `completed-with-errors` or `failed`, and `data-tiles-total`, `data-tiles-ready`, `data-tiles-errored` are counts.
 - **Embed.** These two calls take an admin session (cookie jar per `../references/lightdash.md`); a PAT gets 403 `pat Account is not session auth`. `GET /api/v1/embed/$P/config` lists allowlisted `dashboardUuids`; the seed allowlists one arbitrary dashboard, so use `dashboardUuids[0]` as `$E`, or `PATCH` the same URL (body includes `allowAllDashboards`) and restore the saved config at cleanup. `POST /api/v1/embed/$P/get-embed-url` with `{"content":{"type":"dashboard","dashboardUuid":"$E"},"expiresIn":"1h"}` returns `results.url`; open it in the browser. Embed API calls take header `lightdash-embed-token: <url part after #>`, e.g. `POST /api/v1/embed/$P/dashboard`.
 
 ## Gotchas
@@ -61,9 +61,9 @@ Preconditions:
 - Seed dashboard and space uuids are generated by the seed; resolve them by name or slug each run.
 - `PATCH /api/v1/dashboards/$D` replaces tiles, tabs and filters wholesale: read first, send all three back.
 - `context` takes the enum strings `dashboardView` and `chartView`, not `dashboard` or `chart`.
-- On a fresh browser profile, the `Meet Voice Design` tour can open on the view page. Click `Skip` before editing. The edit canvas starts with `Dotted background` selected.
+- On a fresh browser profile, the 4-step `Meet Design Mode` tour can open on the view page. Click `Skip` before editing. The edit canvas starts with `Dotted background` selected.
 - `Save changes` stays disabled until the layout or filters differ from the saved version.
-- Preview defaults keep the shipped filter popover: `dashboard-controls` (filter sidebar), `in-dashboard-chart-editor` and `dashboard-custom-metrics` are off. Turning one on changes the handles above. `dashboard-fit-to-screen-default` and `dashboard-edit-ergonomics` are on, so view mode fits the screen and tile positions use a 72-column grid, unlike production defaults.
+- Preview defaults keep the shipped filter popover: `dashboard-controls` (filter sidebar), `in-dashboard-chart-editor` and `dashboard-custom-metrics` are off. Turning one on changes the handles above. `dashboard-fit-to-screen-default` and `dashboard-edit-ergonomics` are on, so view mode fits the screen and the edit canvas snaps to a finer grid, unlike production defaults. Stored tile positions stay on 36 columns.
 - A private space for a role check: delete it with `DELETE /api/v1/projects/$P/spaces/$S`.
 - Soft delete is off in previews, so delete is permanent and restore has nothing to restore.
 - An embed JWT and the embed config's `secret` are credentials: keep them out of artifacts; mint a fresh JWT to replay.

@@ -23,4 +23,4 @@ Preconditions:
 
 ## Gotchas
 
-- The seed's dbt connection is read-only. The banner describes write access, and the published field list is still available.
+- The seed's dbt connection is read-only: a note above the tree reads `Read-only. This dbt connection can't be written to.`, and the published field list is still available.
