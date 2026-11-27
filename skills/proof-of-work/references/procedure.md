@@ -60,7 +60,7 @@ Show that the **changed path** ran: a log line, database row, tool call or respo
 
 Run a scenario whose outcome varies between runs, such as model behaviour, at least three times per side, alternating baseline and pinned, and report the counts. Record which model answered.
 
-When an observation contradicts the expectation, check the observation method first: the instance, the persona, the flag state, the capture.
+When an observation contradicts the expectation, check the observation method first: the instance, the persona, the flag state, the capture. Then check the recipe against the source; recipes can trail the product.
 
 For a temporal claim, capture one continuous video from the triggering action through the final continued state, with the pointer visible. Use separate scenarios when decisions lead to different paths. Capture compact, relevant output rather than broad dumps.
 

@@ -8,6 +8,7 @@ The maintained recipes for driving Lightdash features the way a user does. Read 
 - Treat every command as literal.
 - Mutate proof-owned content: create a dashboard, agent or project for the run and leave seed content as it was.
 - A recipe that fails because the seed lacks a precondition is a finding for that file's Gotchas, and the scenario is UNREACHABLE; the journey stays as written.
+- Recipes trail the product. When one disagrees with the source or the running instance, trust those, drive the real path, and note the drift in the proof for `maintain-verification-skill`. When the recipe matches the source and the product still fails, that is a failure: keep the journey as written.
 
 ## Features
 
