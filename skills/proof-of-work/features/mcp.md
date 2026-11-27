@@ -16,7 +16,7 @@ Lightdash serves a Model Context Protocol server over Streamable HTTP. An MCP cl
 ## How to get to it (user POV)
 
 - Settings → MCP → `Connect` for client setup and the server URL, `General` for project access and whether clients can make content changes, and `Analytics` for tool-call history.
-- Project-pinned endpoint `$ENV_URL/api/v1/mcp/projects/$P`, the URL a user pastes into an MCP client.
+- Project-pinned endpoint `$ENV_URL/api/v1/mcp/projects/$P`. `Connect` shows only the org-wide endpoint below.
 - Org-wide endpoint `$ENV_URL/api/v1/mcp`, with the project in tool arguments or the `X-Lightdash-Project: $P` header.
 - OAuth discovery at `$ENV_URL/.well-known/oauth-protected-resource/api/v1/mcp` for clients that sign in interactively.
 
@@ -25,8 +25,8 @@ Lightdash serves a Model Context Protocol server over Streamable HTTP. An MCP cl
 Preconditions:
 
 - `P=3675b69e-8324-4110-bdca-059031aa8da3` (seed project `SEED_PROJECT`).
-- MCP on for the org: `curl -H "Authorization: ApiKey $PAT" "$ENV_URL/api/v1/aiAgents/settings"` shows `"mcpEnabled": true`. Rainbow sets `MCP_ENABLED=true`; elsewhere the `ai-copilot` flag also enables it.
-- `query` is listed only with the `compose-sql-runner` flag on (it is in previews), a caller who can manage Explore, and, on an agent-pinned connection, the agent's `enableDataAccess` and `enableComposerQueries`; `sql` nodes also need SQL Runner access. `get_query_result` comes with any of `query`, `run_sql`, `run_metric_query`.
+- MCP on for the org: `curl -H "Authorization: ApiKey $PAT" "$ENV_URL/api/v1/aiAgents/settings"` shows `"mcpEnabled": true`. Rainbow sets `MCP_ENABLED=true`; elsewhere the `ai-copilot` flag or the org's AI trial also enables it, and otherwise calls get 403 `MCP is not enabled`.
+- `query` is listed only with the `compose-sql-runner` flag on (it is in previews), a caller who can manage Explore, and, on a connection pinned to an agent (header `X-Lightdash-Agent: <agent uuid>`), the agent's `enableDataAccess` and `enableComposerQueries`. With `enableDataAccess: false` the pinned listing drops every discovery and query tool (`list_explores`, `grep_fields`, `run_metric_query`, `run_sql`, `query`, `get_query_result`, `render_chart`); `sql` nodes also need SQL Runner access. `get_query_result` comes with any of `query`, `run_sql`, `run_metric_query`.
 - In Bash or zsh, set `H=(-H "Authorization: ApiKey $PAT" -H 'Content-Type: application/json' -H 'Accept: application/json, text/event-stream')`.
 
 - **Reject anonymous.** `curl -i -X POST "$ENV_URL/api/v1/mcp/projects/$P" -H 'Content-Type: application/json' -d '{}'`. Status 401 with `WWW-Authenticate: Bearer resource_metadata="$ENV_URL/api/v1/oauth/.well-known/oauth-protected-resource"`.
